@@ -224,11 +224,16 @@ def generate_params_h(params: list[dict[str, Any]], dsp_name: str) -> str:
         ptype = p["type"]
 
         if ptype == "checkbox" or ptype == "button":
+            # Check for [default:1] metadata to set initial state
+            default_val = "false"
+            for meta_entry in p.get("meta", []):
+                if "default" in meta_entry and str(meta_entry["default"]) == "1":
+                    default_val = "true"
             layout_lines.append(
                 f"    params.push_back(std::make_unique<juce::AudioParameterBool>(\n"
                 f"        juce::ParameterID{{FaustParamIDs::{camel}, 1}},\n"
                 f'        "{p["label"]}",\n'
-                f"        false));"
+                f"        {default_val}));"
             )
         else:
             init_val = float(p.get("init", 0))

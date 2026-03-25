@@ -13,15 +13,16 @@ bypass         = checkbox("[1][id:bypass] Bypass");
 input_drive_db = hslider("[2][id:input_drive] Input Drive", 0, -20, 20, 0.1) : si.smoo;
 peak_reduction = hslider("[3][id:peak_reduction] Peak Reduction", 50, 0, 100, 0.1) : si.smoo;
 makeup_gain_db = hslider("[4][id:gain] Gain", 0, -20, 40, 0.1) : si.smoo;
-limit_mode     = checkbox("[5][id:limit_mode] Limit/Compress");
+auto_gain      = checkbox("[5][id:auto_gain][default:1] Auto Gain");
+limit_mode     = checkbox("[6][id:limit_mode] Limit/Compress");
 
 // --- Back Panel ("screw" controls) ---
-sc_emphasis = hslider("[6][id:sc_emphasis] SC Emphasis", 50, 0, 100, 0.1) : si.smoo;
-sc_hpf_freq = hslider("[7][id:sc_hpf] SC HPF", 20, 20, 500, 1) : si.smoo;
-t4_bias     = hslider("[8][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
+sc_emphasis = hslider("[7][id:sc_emphasis] SC Emphasis", 50, 0, 100, 0.1) : si.smoo;
+sc_hpf_freq = hslider("[8][id:sc_hpf] SC HPF", 20, 20, 500, 1) : si.smoo;
+t4_bias     = hslider("[9][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
 
 // --- Metering (output only, not an APVTS parameter) ---
-gr_meter = hbargraph("[9][id:gr_meter] GR", -60, 0);
+gr_meter = hbargraph("[10][id:gr_meter] GR", -60, 0);
 
 //==========================================================================
 // Utilities
@@ -242,9 +243,14 @@ with {
         sat_l = tube_stage(comp_l);
         sat_r = tube_stage(comp_r);
 
-        // Output with makeup gain
-        out_l = sat_l * makeup_lin;
-        out_r = sat_r * makeup_lin;
+        // Output with makeup gain + optional auto-gain compensation
+        // Auto gain adds back 100% of the GR to keep output level matched.
+        // Safe because the T4 cell already heavily smooths the GR value,
+        // so the compensation doesn't pump or cause artifacts.
+        auto_gain_db = select2(auto_gain, 0.0, -gr_prev);
+        total_makeup_lin = makeup_lin * db2lin(auto_gain_db);
+        out_l = sat_l * total_makeup_lin;
+        out_r = sat_r * total_makeup_lin;
 
         // --- Sidechain path (sees the driven signal) ---
         sc_l = sc_filter(driven_l);

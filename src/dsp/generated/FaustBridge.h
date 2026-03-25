@@ -19,6 +19,7 @@ public:
         inputDriveParam_ = apvts_.getRawParameterValue(FaustParamIDs::inputDrive);
         peakReductionParam_ = apvts_.getRawParameterValue(FaustParamIDs::peakReduction);
         gainParam_ = apvts_.getRawParameterValue(FaustParamIDs::gain);
+        autoGainParam_ = apvts_.getRawParameterValue(FaustParamIDs::autoGain);
         limitModeParam_ = apvts_.getRawParameterValue(FaustParamIDs::limitMode);
         scEmphasisParam_ = apvts_.getRawParameterValue(FaustParamIDs::scEmphasis);
         scHpfParam_ = apvts_.getRawParameterValue(FaustParamIDs::scHpf);
@@ -39,6 +40,7 @@ public:
         dsp_.fHslider1 = loadParam(inputDriveParam_);
         dsp_.fHslider3 = loadParam(peakReductionParam_);
         dsp_.fHslider5 = loadParam(gainParam_);
+        dsp_.fCheckbox2 = loadParam(autoGainParam_) > 0.5f ? 1.0f : 0.0f;
         dsp_.fCheckbox1 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
         dsp_.fHslider2 = loadParam(scEmphasisParam_);
         dsp_.fHslider0 = loadParam(scHpfParam_);
@@ -88,6 +90,7 @@ public:
     float getInputDrive() const { return loadParam(inputDriveParam_); }
     float getPeakReduction() const { return loadParam(peakReductionParam_); }
     float getGain() const { return loadParam(gainParam_); }
+    bool getAutoGain() const { return loadParam(autoGainParam_) > 0.5f; }
     bool getLimitMode() const { return loadParam(limitModeParam_) > 0.5f; }
     float getScEmphasis() const { return loadParam(scEmphasisParam_); }
     float getScHpf() const { return loadParam(scHpfParam_); }
@@ -114,6 +117,7 @@ private:
     std::atomic<float>* inputDriveParam_ = nullptr;
     std::atomic<float>* peakReductionParam_ = nullptr;
     std::atomic<float>* gainParam_ = nullptr;
+    std::atomic<float>* autoGainParam_ = nullptr;
     std::atomic<float>* limitModeParam_ = nullptr;
     std::atomic<float>* scEmphasisParam_ = nullptr;
     std::atomic<float>* scHpfParam_ = nullptr;
