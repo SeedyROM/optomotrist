@@ -9,9 +9,8 @@
 #include "ui/PluginLookAndFeel.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
-class OptomotristAudioProcessorEditor : public juce::AudioProcessorEditor
-, private juce::Timer
-{
+class OptomotristAudioProcessorEditor : public juce::AudioProcessorEditor,
+                                        private juce::Timer {
 public:
   OptomotristAudioProcessorEditor(OptomotristAudioProcessor &);
   ~OptomotristAudioProcessorEditor() override;
@@ -25,12 +24,11 @@ private:
   void promptSavePreset();
   void refreshPresetControls();
 
-  void drawSectionPanel(juce::Graphics &g,
-                        juce::Rectangle<int> bounds,
+  void drawSectionPanel(juce::Graphics &g, juce::Rectangle<int> bounds,
                         const juce::String &title);
 
   static constexpr int minEditorWidth = 760;
-  static constexpr int minEditorHeight = 520;
+  static constexpr int minEditorHeight = 620;
   OptomotristAudioProcessor &audioProcessor;
 
   PluginLookAndFeel pluginLnf;
@@ -44,7 +42,8 @@ private:
 
   // --- Limit/Compress toggle ---
   juce::ToggleButton limitModeToggle;
-  std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> limitModeAttachment;
+  std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>
+      limitModeAttachment;
 
   // --- Sidechain / Character controls ---
   RotaryKnob scEmphasisKnob;

@@ -7,10 +7,11 @@
 #include <memory>
 OptomotristAudioProcessorEditor::OptomotristAudioProcessorEditor(
     OptomotristAudioProcessor &p)
-    : AudioProcessorEditor(&p),
-      audioProcessor(p),
-      inputDriveKnob(p.apvts, RuntimeParamIDs::inputDrive, "INPUT DRIVE", " dB"),
-      peakReductionKnob(p.apvts, RuntimeParamIDs::peakReduction, "PEAK REDUCTION"),
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      inputDriveKnob(p.apvts, RuntimeParamIDs::inputDrive, "INPUT DRIVE",
+                     " dB"),
+      peakReductionKnob(p.apvts, RuntimeParamIDs::peakReduction,
+                        "PEAK REDUCTION"),
       gainKnob(p.apvts, RuntimeParamIDs::gain, "GAIN", " dB"),
       mixKnob(p.apvts, RuntimeParamIDs::mix, "MIX", "%"),
       scEmphasisKnob(p.apvts, RuntimeParamIDs::scEmphasis, "SC EMPHASIS", "%"),
@@ -31,8 +32,9 @@ OptomotristAudioProcessorEditor::OptomotristAudioProcessorEditor(
   // --- Limit/Compress toggle ---
   limitModeToggle.setButtonText("LIMIT");
   addAndMakeVisible(limitModeToggle);
-  limitModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-      p.apvts, RuntimeParamIDs::limitMode, limitModeToggle);
+  limitModeAttachment =
+      std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+          p.apvts, RuntimeParamIDs::limitMode, limitModeToggle);
 
   // --- GR meter ---
   addAndMakeVisible(grMeter);
@@ -57,11 +59,12 @@ OptomotristAudioProcessorEditor::OptomotristAudioProcessorEditor(
       refreshPresetControls();
   };
   topBar.onShowOptionsMenu = [this] { showOptionsMenu(); };
-  topBar.setActiveABSlot(audioProcessor.getActiveABSlot() == OptomotristAudioProcessor::ABSlot::A);
+  topBar.setActiveABSlot(audioProcessor.getActiveABSlot() ==
+                         OptomotristAudioProcessor::ABSlot::A);
   refreshPresetControls();
 
   setResizable(true, true);
-  setResizeLimits(minEditorWidth, minEditorHeight, 1072, 610);
+  setResizeLimits(minEditorWidth, minEditorHeight, 1072, minEditorHeight);
   setSize(minEditorWidth, minEditorHeight);
 
   startTimerHz(24);
@@ -80,23 +83,25 @@ void OptomotristAudioProcessorEditor::timerCallback() {
 void OptomotristAudioProcessorEditor::refreshPresetControls() {
   topBar.setPresetNames(audioProcessor.getAvailablePresetNames());
   topBar.setSelectedPresetName(audioProcessor.getDisplayedPresetName());
-  topBar.setActiveABSlot(audioProcessor.getActiveABSlot() == OptomotristAudioProcessor::ABSlot::A);
+  topBar.setActiveABSlot(audioProcessor.getActiveABSlot() ==
+                         OptomotristAudioProcessor::ABSlot::A);
 }
 
 void OptomotristAudioProcessorEditor::promptSavePreset() {
   auto dialog = std::make_unique<juce::AlertWindow>(
       "Save Preset", "Enter a preset name.", juce::AlertWindow::NoIcon);
-  dialog->addTextEditor("presetName", audioProcessor.getActivePresetName(), "Preset name");
+  dialog->addTextEditor("presetName", audioProcessor.getActivePresetName(),
+                        "Preset name");
   dialog->addButton("Save", 1);
   dialog->addButton("Cancel", 0);
 
   auto *dialogPtr = dialog.release();
   dialogPtr->enterModalState(
-      true,
-      juce::ModalCallbackFunction::create([this, dialogPtr](int result) {
+      true, juce::ModalCallbackFunction::create([this, dialogPtr](int result) {
         std::unique_ptr<juce::AlertWindow> owner(dialogPtr);
         if (result == 1 &&
-            audioProcessor.saveUserPreset(dialogPtr->getTextEditorContents("presetName").trim()))
+            audioProcessor.saveUserPreset(
+                dialogPtr->getTextEditorContents("presetName").trim()))
           refreshPresetControls();
       }),
       true);
@@ -110,14 +115,14 @@ void OptomotristAudioProcessorEditor::showOptionsMenu() {
   menu.addItem(3, "Clear A/B", audioProcessor.hasDistinctABState());
   menu.addSeparator();
   menu.addItem(4, "Save Preset...");
-  menu.addItem(5,
-               "Delete Current Preset",
+  menu.addItem(5, "Delete Current Preset",
                !audioProcessor.getActivePresetName().isEmpty() &&
                    !audioProcessor.isActivePresetFactory());
   menu.addItem(6, "Reveal Presets Folder");
 
   menu.showMenuAsync(
-      juce::PopupMenu::Options().withTargetComponent(topBar.getOptionsTargetComponent()),
+      juce::PopupMenu::Options().withTargetComponent(
+          topBar.getOptionsTargetComponent()),
       [this](int result) {
         if (result == 1)
           audioProcessor.copyABSlot(OptomotristAudioProcessor::ABSlot::A,
@@ -140,9 +145,8 @@ void OptomotristAudioProcessorEditor::showOptionsMenu() {
       });
 }
 
-void OptomotristAudioProcessorEditor::drawSectionPanel(juce::Graphics &g,
-                                                        juce::Rectangle<int> bounds,
-                                                        const juce::String &title) {
+void OptomotristAudioProcessorEditor::drawSectionPanel(
+    juce::Graphics &g, juce::Rectangle<int> bounds, const juce::String &title) {
   namespace C = OptomotristColors;
   const auto fb = bounds.toFloat();
   constexpr float cornerRadius = 6.0f;
@@ -159,12 +163,8 @@ void OptomotristAudioProcessorEditor::drawSectionPanel(juce::Graphics &g,
   if (title.isNotEmpty()) {
     g.setColour(juce::Colour(C::sectionTitle));
     g.setFont(juce::Font(11.0f, juce::Font::bold));
-    g.drawText(title,
-               bounds.getX() + 12,
-               bounds.getY() + 2,
-               bounds.getWidth() - 24,
-               24,
-               juce::Justification::centredLeft);
+    g.drawText(title, bounds.getX() + 12, bounds.getY() + 2,
+               bounds.getWidth() - 24, 24, juce::Justification::centredLeft);
   }
 }
 
@@ -179,8 +179,7 @@ void OptomotristAudioProcessorEditor::paint(juce::Graphics &g) {
   const int sectionGap = 8;
 
   // --- Top row: COMPRESSOR (with GR inside) | OUTPUT ---
-  const int topRowHeight = juce::jlimit(240, 380,
-                                        (bounds.getHeight() * 2) / 3);
+  const int topRowHeight = juce::jlimit(240, 380, (bounds.getHeight() * 2) / 3);
   auto topRow = bounds.removeFromTop(topRowHeight);
   bounds.removeFromTop(sectionGap);
 
@@ -210,8 +209,7 @@ void OptomotristAudioProcessorEditor::resized() {
   const int titleHeight = 24;
 
   // --- Top row: COMPRESSOR (with GR inside) | OUTPUT ---
-  const int topRowHeight = juce::jlimit(240, 380,
-                                        (bounds.getHeight() * 2) / 3);
+  const int topRowHeight = juce::jlimit(240, 380, (bounds.getHeight() * 2) / 3);
   auto topRow = bounds.removeFromTop(topRowHeight);
   bounds.removeFromTop(sectionGap);
 
@@ -223,7 +221,8 @@ void OptomotristAudioProcessorEditor::resized() {
   topRow.removeFromLeft(sectionGap);
   auto outputSection = topRow;
 
-  // --- Compressor section: GR meter on top, knobs below, Limit toggle at bottom ---
+  // --- Compressor section: GR meter on top, knobs below, Limit toggle at
+  // bottom ---
   {
     auto area = compressorSection.reduced(sectionPadding);
     area.removeFromTop(titleHeight);
@@ -231,9 +230,11 @@ void OptomotristAudioProcessorEditor::resized() {
     const int vGap = 10;
     const int toggleH = 30;
     const int knobRowH = 120; // fixed height for the knob row
+    const int bottomPad = 10;
 
-    // GR meter gets everything above the knobs + toggle
-    const int grH = area.getHeight() - knobRowH - toggleH - vGap * 2;
+    // GR meter gets everything above the knobs + toggle + bottom padding
+    const int grH =
+        area.getHeight() - knobRowH - toggleH - vGap * 2 - bottomPad;
 
     // GR meter on top — use full section width with 20px margins
     {
@@ -260,11 +261,9 @@ void OptomotristAudioProcessorEditor::resized() {
     // Limit toggle centred at bottom
     {
       const int toggleW = juce::jmin(80, area.getWidth());
-      limitModeToggle.setBounds(
-          area.getCentreX() - toggleW / 2,
-          area.getCentreY() - toggleH / 2,
-          toggleW,
-          toggleH);
+      limitModeToggle.setBounds(area.getCentreX() - toggleW / 2,
+                                area.getCentreY() - toggleH / 2, toggleW,
+                                toggleH);
     }
   }
 
@@ -289,7 +288,8 @@ void OptomotristAudioProcessorEditor::resized() {
 
     const int hGap = 8;
     const int numControls = 3;
-    const int knobW = (area.getWidth() - hGap * (numControls - 1)) / numControls;
+    const int knobW =
+        (area.getWidth() - hGap * (numControls - 1)) / numControls;
 
     auto scEmphBounds = area.removeFromLeft(knobW);
     area.removeFromLeft(hGap);
