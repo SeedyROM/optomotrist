@@ -4,7 +4,7 @@ LA-2A-style optical/FET compressor emulator.
 
 [![Build](https://github.com/SeedyROM/optomotrist/actions/workflows/build.yml/badge.svg)](https://github.com/SeedyROM/optomotrist/actions/workflows/build.yml)
 
-<!-- TODO: Add screenshot -->
+<img width="760" height="620" alt="Screenshot 2026-03-25 at 1 23 27 AM" src="https://github.com/user-attachments/assets/de0bf24f-7392-4cc7-a2ab-173176cbe9f2" />
 
 <br />
 <br />
