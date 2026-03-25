@@ -31,8 +31,7 @@ public:
 private:
   std::function<float()> meterSource;
 
-  float currentGrDb = 0.0f;   // smoothed GR in positive dB (0 = no reduction)
-  float displayGrDb = 0.0f;   // ballistic-smoothed value for display
+  float displayGrDb = 0.0f; // ballistic-smoothed value for display
 
   // Arc geometry (computed in resized)
   float arcCentreX = 0.0f;

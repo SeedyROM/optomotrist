@@ -19,13 +19,12 @@ constexpr auto abSlotNameB = "B";
 } // namespace
 
 OptomotristAudioProcessor::OptomotristAudioProcessor()
-    : AudioProcessor(BusesProperties()
-                         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-                         .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
-      apvts(*this, nullptr, "Parameters", RuntimeParameters::createLayout())
-,
-      faustBridge(apvts)
-{
+    : AudioProcessor(
+          BusesProperties()
+              .withInput("Input", juce::AudioChannelSet::stereo(), true)
+              .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts(*this, nullptr, "Parameters", RuntimeParameters::createLayout()),
+      faustBridge(apvts) {
   defaultPresetState = captureCurrentState();
   initialiseABSlotsFromCurrentState();
 }
@@ -36,29 +35,17 @@ const juce::String OptomotristAudioProcessor::getName() const {
   return JucePlugin_Name;
 }
 
-bool OptomotristAudioProcessor::acceptsMidi() const {
-  return false;
-}
+bool OptomotristAudioProcessor::acceptsMidi() const { return false; }
 
-bool OptomotristAudioProcessor::producesMidi() const {
-  return false;
-}
+bool OptomotristAudioProcessor::producesMidi() const { return false; }
 
-bool OptomotristAudioProcessor::isMidiEffect() const {
-  return false;
-}
+bool OptomotristAudioProcessor::isMidiEffect() const { return false; }
 
-double OptomotristAudioProcessor::getTailLengthSeconds() const {
-  return 0.0;
-}
+double OptomotristAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
-int OptomotristAudioProcessor::getNumPrograms() {
-  return 1;
-}
+int OptomotristAudioProcessor::getNumPrograms() { return 1; }
 
-int OptomotristAudioProcessor::getCurrentProgram() {
-  return 0;
-}
+int OptomotristAudioProcessor::getCurrentProgram() { return 0; }
 
 void OptomotristAudioProcessor::setCurrentProgram(int index) {
   juce::ignoreUnused(index);
@@ -70,19 +57,19 @@ const juce::String OptomotristAudioProcessor::getProgramName(int index) {
 }
 
 void OptomotristAudioProcessor::changeProgramName(int index,
-                                               const juce::String &newName) {
+                                                  const juce::String &newName) {
   juce::ignoreUnused(index, newName);
 }
 
 void OptomotristAudioProcessor::prepareToPlay(double sampleRate,
-                                           int samplesPerBlock) {
+                                              int samplesPerBlock) {
   currentSampleRate = sampleRate;
   inputMeterPeak.store(0.0f);
   outputMeterPeak.store(0.0f);
   meterSamplesSinceLastUpdate = 0;
   meterUpdateIntervalSamples = juce::jmax(256, samplesPerBlock);
 
-faustBridge.prepare(sampleRate, samplesPerBlock);
+  faustBridge.prepare(sampleRate, samplesPerBlock);
 }
 
 void OptomotristAudioProcessor::releaseResources() {
@@ -95,19 +82,24 @@ juce::ValueTree OptomotristAudioProcessor::captureCurrentState() {
   return state;
 }
 
-juce::ValueTree OptomotristAudioProcessor::createWrappedPluginState(bool includeABState) {
+juce::ValueTree
+OptomotristAudioProcessor::createWrappedPluginState(bool includeABState) {
   juce::ValueTree wrappedState(pluginStateRootType);
-  wrappedState.setProperty(pluginStatePropertySchemaVersion, stateSchemaVersion, nullptr);
-  wrappedState.setProperty(pluginStatePropertyPluginVersion, JucePlugin_VersionString, nullptr);
+  wrappedState.setProperty(pluginStatePropertySchemaVersion, stateSchemaVersion,
+                           nullptr);
+  wrappedState.setProperty(pluginStatePropertyPluginVersion,
+                           JucePlugin_VersionString, nullptr);
   syncActiveABSlotFromCurrentState();
   wrappedState.appendChild(captureCurrentState(), nullptr);
 
   if (includeABState) {
-    wrappedState.setProperty(pluginStatePropertyActiveABSlot,
-                             activeABSlot == ABSlot::A ? abSlotNameA : abSlotNameB,
-                             nullptr);
-    wrappedState.setProperty(pluginStatePropertySlotAPresetName, slotAPresetName, nullptr);
-    wrappedState.setProperty(pluginStatePropertySlotBPresetName, slotBPresetName, nullptr);
+    wrappedState.setProperty(
+        pluginStatePropertyActiveABSlot,
+        activeABSlot == ABSlot::A ? abSlotNameA : abSlotNameB, nullptr);
+    wrappedState.setProperty(pluginStatePropertySlotAPresetName,
+                             slotAPresetName, nullptr);
+    wrappedState.setProperty(pluginStatePropertySlotBPresetName,
+                             slotBPresetName, nullptr);
 
     juce::ValueTree slotAWrapper(pluginStateChildSlotA);
     slotAWrapper.appendChild(slotAState.createCopy(), nullptr);
@@ -121,16 +113,20 @@ juce::ValueTree OptomotristAudioProcessor::createWrappedPluginState(bool include
   return wrappedState;
 }
 
-juce::ValueTree OptomotristAudioProcessor::migrateStateTree(juce::ValueTree savedTree) const {
+juce::ValueTree
+OptomotristAudioProcessor::migrateStateTree(juce::ValueTree savedTree) const {
   auto schemaVersion = savedTree.getProperty(pluginStatePropertySchemaVersion);
   if (!schemaVersion.isInt() || static_cast<int>(schemaVersion) < 1)
-    savedTree.setProperty(pluginStatePropertySchemaVersion, stateSchemaVersion, nullptr);
+    savedTree.setProperty(pluginStatePropertySchemaVersion, stateSchemaVersion,
+                          nullptr);
 
   if (!savedTree.hasProperty(pluginStatePropertyPluginVersion))
-    savedTree.setProperty(pluginStatePropertyPluginVersion, JucePlugin_VersionString, nullptr);
+    savedTree.setProperty(pluginStatePropertyPluginVersion,
+                          JucePlugin_VersionString, nullptr);
 
   if (!savedTree.hasProperty(pluginStatePropertyActiveABSlot))
-    savedTree.setProperty(pluginStatePropertyActiveABSlot, abSlotNameA, nullptr);
+    savedTree.setProperty(pluginStatePropertyActiveABSlot, abSlotNameA,
+                          nullptr);
 
   if (!savedTree.hasProperty(pluginStatePropertySlotAPresetName))
     savedTree.setProperty(pluginStatePropertySlotAPresetName, "Init", nullptr);
@@ -141,8 +137,8 @@ juce::ValueTree OptomotristAudioProcessor::migrateStateTree(juce::ValueTree save
   return savedTree;
 }
 
-juce::ValueTree
-OptomotristAudioProcessor::extractPluginStateFromSavedTree(const juce::ValueTree &savedTree) const {
+juce::ValueTree OptomotristAudioProcessor::extractPluginStateFromSavedTree(
+    const juce::ValueTree &savedTree) const {
   if (!savedTree.isValid())
     return {};
 
@@ -157,7 +153,8 @@ OptomotristAudioProcessor::extractPluginStateFromSavedTree(const juce::ValueTree
   return pluginState.isValid() ? pluginState.createCopy() : juce::ValueTree{};
 }
 
-void OptomotristAudioProcessor::applyStateToApvts(const juce::ValueTree &stateToApply) {
+void OptomotristAudioProcessor::applyStateToApvts(
+    const juce::ValueTree &stateToApply) {
   if (!stateToApply.isValid())
     return;
 
@@ -181,11 +178,13 @@ void OptomotristAudioProcessor::syncActiveABSlotFromCurrentState() {
   getMutableABState(activeABSlot) = captureCurrentState();
 }
 
-void OptomotristAudioProcessor::sanitiseTransientState(juce::ValueTree &state) const {
+void OptomotristAudioProcessor::sanitiseTransientState(
+    juce::ValueTree &state) const {
   juce::ignoreUnused(state);
 }
 
-void OptomotristAudioProcessor::setActivePresetName(const juce::String &presetName) {
+void OptomotristAudioProcessor::setActivePresetName(
+    const juce::String &presetName) {
   if (activeABSlot == ABSlot::A)
     slotAPresetName = presetName;
   else
@@ -196,7 +195,8 @@ juce::ValueTree &OptomotristAudioProcessor::getMutableABState(ABSlot slot) {
   return slot == ABSlot::A ? slotAState : slotBState;
 }
 
-const juce::ValueTree &OptomotristAudioProcessor::getABState(ABSlot slot) const {
+const juce::ValueTree &
+OptomotristAudioProcessor::getABState(ABSlot slot) const {
   return slot == ABSlot::A ? slotAState : slotBState;
 }
 
@@ -234,8 +234,8 @@ void OptomotristAudioProcessor::swapABSlots() {
 
 juce::StringArray OptomotristAudioProcessor::getAvailablePresetNames() const {
   juce::StringArray names;
-  for (const auto &preset :
-       PluginPresetManager::getAvailablePresets(defaultPresetState, apvts.state.getType()))
+  for (const auto &preset : PluginPresetManager::getAvailablePresets(
+           defaultPresetState, apvts.state.getType()))
     names.add(preset.name);
   return names;
 }
@@ -253,8 +253,8 @@ juce::String OptomotristAudioProcessor::getDisplayedPresetName() {
 
   const auto activePresetName = getActivePresetName();
   const auto currentState = captureCurrentState();
-  const auto presetState =
-      PluginPresetManager::loadPresetState(activePresetName, defaultPresetState, apvts.state.getType());
+  const auto presetState = PluginPresetManager::loadPresetState(
+      activePresetName, defaultPresetState, apvts.state.getType());
 
   if (!presetState.isValid())
     return activePresetName;
@@ -268,8 +268,8 @@ bool OptomotristAudioProcessor::isActivePresetFactory() const {
 }
 
 bool OptomotristAudioProcessor::loadPreset(const juce::String &presetName) {
-  auto presetState =
-      PluginPresetManager::loadPresetState(presetName, defaultPresetState, apvts.state.getType());
+  auto presetState = PluginPresetManager::loadPresetState(
+      presetName, defaultPresetState, apvts.state.getType());
   if (!presetState.isValid())
     return false;
 
@@ -292,7 +292,8 @@ bool OptomotristAudioProcessor::saveUserPreset(const juce::String &presetName) {
 bool OptomotristAudioProcessor::deleteActiveUserPreset() {
   auto presetName = getActivePresetName();
   if (presetName.isEmpty() ||
-      PluginPresetManager::isFactoryPreset(presetName, defaultPresetState, apvts.state.getType()))
+      PluginPresetManager::isFactoryPreset(presetName, defaultPresetState,
+                                           apvts.state.getType()))
     return false;
 
   if (!PluginPresetManager::deleteUserPreset(presetName))
@@ -314,8 +315,8 @@ void OptomotristAudioProcessor::clearABState() {
 }
 
 void OptomotristAudioProcessor::updatePeakMeter(std::atomic<float> &meterState,
-                                              float blockPeak,
-                                              int numSamples) noexcept {
+                                                float blockPeak,
+                                                int numSamples) noexcept {
   const auto heldPeak = meterState.load(std::memory_order_relaxed);
   if (blockPeak >= heldPeak) {
     meterState.store(blockPeak, std::memory_order_relaxed);
@@ -323,27 +324,29 @@ void OptomotristAudioProcessor::updatePeakMeter(std::atomic<float> &meterState,
   }
 
   const auto decayTimeSeconds = 0.16f;
-  const auto decay =
-      std::exp(-static_cast<float>(numSamples) /
-               static_cast<float>(juce::jmax(1.0, currentSampleRate * decayTimeSeconds)));
+  const auto decay = std::exp(-static_cast<float>(numSamples) /
+                              static_cast<float>(juce::jmax(
+                                  1.0, currentSampleRate * decayTimeSeconds)));
   meterState.store(heldPeak * decay, std::memory_order_relaxed);
 }
 
-bool OptomotristAudioProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const {
+bool OptomotristAudioProcessor::isBusesLayoutSupported(
+    const BusesLayout &layouts) const {
   const auto mainInput = layouts.getMainInputChannelSet();
   const auto mainOutput = layouts.getMainOutputChannelSet();
 
   if (mainOutput != juce::AudioChannelSet::stereo())
     return false;
 
-  if (mainInput != juce::AudioChannelSet::mono() && mainInput != juce::AudioChannelSet::stereo())
+  if (mainInput != juce::AudioChannelSet::mono() &&
+      mainInput != juce::AudioChannelSet::stereo())
     return false;
 
   return true;
 }
 
 void OptomotristAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
-                                          juce::MidiBuffer &midiMessages) {
+                                             juce::MidiBuffer &midiMessages) {
   juce::ignoreUnused(midiMessages);
   juce::ScopedNoDenormals noDenormals;
 
@@ -356,44 +359,46 @@ void OptomotristAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   auto getMaxPeak = [&buffer](int numChannels) {
     auto peak = 0.0f;
     for (int ch = 0; ch < numChannels; ++ch)
-      peak = juce::jmax(peak, buffer.getMagnitude(ch, 0, buffer.getNumSamples()));
+      peak =
+          juce::jmax(peak, buffer.getMagnitude(ch, 0, buffer.getNumSamples()));
     return peak;
   };
 
   meterSamplesSinceLastUpdate += buffer.getNumSamples();
-  const bool shouldMeasurePeaks = meterSamplesSinceLastUpdate >= meterUpdateIntervalSamples;
+  const bool shouldMeasurePeaks =
+      meterSamplesSinceLastUpdate >= meterUpdateIntervalSamples;
   if (shouldMeasurePeaks) {
     updatePeakMeter(inputMeterPeak,
                     juce::jlimit(0.0f, 1.2f, getMaxPeak(totalNumInputChannels)),
                     meterSamplesSinceLastUpdate);
   }
 
-faustBridge.process(buffer, totalNumInputChannels, totalNumOutputChannels);
-gainReductionDb.store(faustBridge.getDSP().fHbargraph0, std::memory_order_relaxed);
-if (shouldMeasurePeaks) {
-    updatePeakMeter(outputMeterPeak,
-                    juce::jlimit(0.0f, 1.2f, getMaxPeak(totalNumOutputChannels)),
-                    meterSamplesSinceLastUpdate);
+  faustBridge.process(buffer, totalNumInputChannels, totalNumOutputChannels);
+  gainReductionDb.store(faustBridge.getGrMeter(), std::memory_order_relaxed);
+  if (shouldMeasurePeaks) {
+    updatePeakMeter(
+        outputMeterPeak,
+        juce::jlimit(0.0f, 1.2f, getMaxPeak(totalNumOutputChannels)),
+        meterSamplesSinceLastUpdate);
     meterSamplesSinceLastUpdate = 0;
   }
 }
 
-bool OptomotristAudioProcessor::hasEditor() const {
-  return true;
-}
+bool OptomotristAudioProcessor::hasEditor() const { return true; }
 
 juce::AudioProcessorEditor *OptomotristAudioProcessor::createEditor() {
   return new OptomotristAudioProcessorEditor(*this);
 }
 
-void OptomotristAudioProcessor::getStateInformation(juce::MemoryBlock &destData) {
+void OptomotristAudioProcessor::getStateInformation(
+    juce::MemoryBlock &destData) {
   auto state = createWrappedPluginState(true);
   std::unique_ptr<juce::XmlElement> xml(state.createXml());
   copyXmlToBinary(*xml, destData);
 }
 
 void OptomotristAudioProcessor::setStateInformation(const void *data,
-                                                 int sizeInBytes) {
+                                                    int sizeInBytes) {
   std::unique_ptr<juce::XmlElement> xml(getXmlFromBinary(data, sizeInBytes));
   if (xml == nullptr)
     return;
@@ -407,18 +412,25 @@ void OptomotristAudioProcessor::setStateInformation(const void *data,
 
   if (restoredTree.hasType(pluginStateRootType)) {
     auto migratedTree = migrateStateTree(restoredTree.createCopy());
-    auto restoredSlotAWrapper = migratedTree.getChildWithName(pluginStateChildSlotA);
-    auto restoredSlotBWrapper = migratedTree.getChildWithName(pluginStateChildSlotB);
+    auto restoredSlotAWrapper =
+        migratedTree.getChildWithName(pluginStateChildSlotA);
+    auto restoredSlotBWrapper =
+        migratedTree.getChildWithName(pluginStateChildSlotB);
 
-    auto restoredSlotA = restoredSlotAWrapper.getChildWithName(apvts.state.getType());
-    auto restoredSlotB = restoredSlotBWrapper.getChildWithName(apvts.state.getType());
+    auto restoredSlotA =
+        restoredSlotAWrapper.getChildWithName(apvts.state.getType());
+    auto restoredSlotB =
+        restoredSlotBWrapper.getChildWithName(apvts.state.getType());
 
     if (restoredSlotA.isValid() && restoredSlotB.isValid()) {
       slotAState = restoredSlotA.createCopy();
       slotBState = restoredSlotB.createCopy();
-      slotAPresetName = migratedTree[pluginStatePropertySlotAPresetName].toString();
-      slotBPresetName = migratedTree[pluginStatePropertySlotBPresetName].toString();
-      activeABSlot = migratedTree[pluginStatePropertyActiveABSlot].toString() == abSlotNameB
+      slotAPresetName =
+          migratedTree[pluginStatePropertySlotAPresetName].toString();
+      slotBPresetName =
+          migratedTree[pluginStatePropertySlotBPresetName].toString();
+      activeABSlot = migratedTree[pluginStatePropertyActiveABSlot].toString() ==
+                             abSlotNameB
                          ? ABSlot::B
                          : ABSlot::A;
       applyStateToApvts(getABState(activeABSlot));

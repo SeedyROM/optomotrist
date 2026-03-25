@@ -189,6 +189,7 @@ struct OptomotristDSP {
 	}
 	
 	static void classInit(int sample_rate) {
+		(void)sample_rate;
 	}
 	
 	virtual void instanceConstants(int sample_rate) {
@@ -478,23 +479,9 @@ struct OptomotristDSP {
 			/* Vectorizable loop 5 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
-				fZec2[i] = 1.0f - fZec1[i];
-			}
-			/* Vectorizable loop 6 */
-			/* Pre code */
-			fYec0_idx = (fYec0_idx + fYec0_idx_save) & 63;
-			/* Compute code */
-			for (int i = 0; i < vsize; i = i + 1) {
-				fYec0[(i + fYec0_idx) & 63] = float(input0[i]) * fZec3[i];
-			}
-			/* Post code */
-			fYec0_idx_save = vsize;
-			/* Vectorizable loop 7 */
-			/* Compute code */
-			for (int i = 0; i < vsize; i = i + 1) {
 				fZec4[i] = fZec1[i] + 1.0f;
 			}
-			/* Vectorizable loop 8 */
+			/* Vectorizable loop 6 */
 			/* Pre code */
 			fYec1_idx = (fYec1_idx + fYec1_idx_save) & 63;
 			/* Compute code */
@@ -503,16 +490,21 @@ struct OptomotristDSP {
 			}
 			/* Post code */
 			fYec1_idx_save = vsize;
-			/* Recursive loop 9 */
-			/* Pre code */
-			fRec6_idx = (fRec6_idx + fRec6_idx_save) & 63;
+			/* Vectorizable loop 7 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
-				fRec6[(i + fRec6_idx) & 63] = -((fRec6[(i + fRec6_idx - 1) & 63] * fZec2[i] - (fYec0[(i + fYec0_idx) & 63] - fYec0[(i + fYec0_idx - 1) & 63]) / fZec0[i]) / fZec4[i]);
+				fZec2[i] = 1.0f - fZec1[i];
+			}
+			/* Vectorizable loop 8 */
+			/* Pre code */
+			fYec0_idx = (fYec0_idx + fYec0_idx_save) & 63;
+			/* Compute code */
+			for (int i = 0; i < vsize; i = i + 1) {
+				fYec0[(i + fYec0_idx) & 63] = float(input0[i]) * fZec3[i];
 			}
 			/* Post code */
-			fRec6_idx_save = vsize;
-			/* Recursive loop 10 */
+			fYec0_idx_save = vsize;
+			/* Recursive loop 9 */
 			/* Pre code */
 			fRec11_idx = (fRec11_idx + fRec11_idx_save) & 63;
 			/* Compute code */
@@ -521,6 +513,15 @@ struct OptomotristDSP {
 			}
 			/* Post code */
 			fRec11_idx_save = vsize;
+			/* Recursive loop 10 */
+			/* Pre code */
+			fRec6_idx = (fRec6_idx + fRec6_idx_save) & 63;
+			/* Compute code */
+			for (int i = 0; i < vsize; i = i + 1) {
+				fRec6[(i + fRec6_idx) & 63] = -((fRec6[(i + fRec6_idx - 1) & 63] * fZec2[i] - (fYec0[(i + fYec0_idx) & 63] - fYec0[(i + fYec0_idx - 1) & 63]) / fZec0[i]) / fZec4[i]);
+			}
+			/* Post code */
+			fRec6_idx_save = vsize;
 			/* Recursive loop 11 */
 			/* Pre code */
 			fRec9_idx = (fRec9_idx + fRec9_idx_save) & 63;
@@ -555,15 +556,6 @@ struct OptomotristDSP {
 			}
 			/* Recursive loop 15 */
 			/* Pre code */
-			fRec5_idx = (fRec5_idx + fRec5_idx_save) & 63;
-			/* Compute code */
-			for (int i = 0; i < vsize; i = i + 1) {
-				fRec5[(i + fRec5_idx) & 63] = fRec5[(i + fRec5_idx - 1) & 63] + (fZec5[i] - fRec5[(i + fRec5_idx - 1) & 63]) * (1.0f - ((fZec5[i] > fRec5[(i + fRec5_idx - 1) & 63]) ? fConst8 : fConst7));
-			}
-			/* Post code */
-			fRec5_idx_save = vsize;
-			/* Recursive loop 16 */
-			/* Pre code */
 			fRec13_idx = (fRec13_idx + fRec13_idx_save) & 63;
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
@@ -571,6 +563,15 @@ struct OptomotristDSP {
 			}
 			/* Post code */
 			fRec13_idx_save = vsize;
+			/* Recursive loop 16 */
+			/* Pre code */
+			fRec5_idx = (fRec5_idx + fRec5_idx_save) & 63;
+			/* Compute code */
+			for (int i = 0; i < vsize; i = i + 1) {
+				fRec5[(i + fRec5_idx) & 63] = fRec5[(i + fRec5_idx - 1) & 63] + (fZec5[i] - fRec5[(i + fRec5_idx - 1) & 63]) * (1.0f - ((fZec5[i] > fRec5[(i + fRec5_idx - 1) & 63]) ? fConst8 : fConst7));
+			}
+			/* Post code */
+			fRec5_idx_save = vsize;
 			/* Vectorizable loop 17 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
@@ -608,9 +609,14 @@ struct OptomotristDSP {
 			/* Vectorizable loop 23 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
+				iZec11[i] = std::fabs(fZec10[i]) < 1.1920929e-07f;
+			}
+			/* Vectorizable loop 24 */
+			/* Compute code */
+			for (int i = 0; i < vsize; i = i + 1) {
 				fZec12[i] = 0.01f * fRec14[(i + fRec14_idx) & 63] + 0.5f;
 			}
-			/* Recursive loop 24 */
+			/* Recursive loop 25 */
 			/* Pre code */
 			fRec18_idx = (fRec18_idx + fRec18_idx_save) & 63;
 			/* Compute code */
@@ -619,12 +625,21 @@ struct OptomotristDSP {
 			}
 			/* Post code */
 			fRec18_idx_save = vsize;
-			/* Vectorizable loop 25 */
+			/* Vectorizable loop 26 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
-				iZec11[i] = std::fabs(fZec10[i]) < 1.1920929e-07f;
+				fZec18[i] = std::pow(1e+01f, 0.05f * fRec18[(i + fRec18_idx) & 63]);
 			}
-			/* Recursive loop 26 */
+			/* Recursive loop 27 */
+			/* Pre code */
+			fRec22_idx = (fRec22_idx + fRec22_idx_save) & 63;
+			/* Compute code */
+			for (int i = 0; i < vsize; i = i + 1) {
+				fRec22[(i + fRec22_idx) & 63] = fSlow10 + fConst2 * fRec22[(i + fRec22_idx - 1) & 63];
+			}
+			/* Post code */
+			fRec22_idx_save = vsize;
+			/* Recursive loop 28 */
 			/* Pre code */
 			fRec3_idx = (fRec3_idx + fRec3_idx_save) & 63;
 			fRec4_idx = (fRec4_idx + fRec4_idx_save) & 63;
@@ -639,21 +654,12 @@ struct OptomotristDSP {
 			/* Post code */
 			fRec3_idx_save = vsize;
 			fRec4_idx_save = vsize;
-			/* Vectorizable loop 27 */
+			/* Vectorizable loop 29 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
-				fZec18[i] = std::pow(1e+01f, 0.05f * fRec18[(i + fRec18_idx) & 63]);
+				fZec20[i] = 1.0f - 0.01f * fRec22[(i + fRec22_idx) & 63];
 			}
-			/* Recursive loop 28 */
-			/* Pre code */
-			fRec22_idx = (fRec22_idx + fRec22_idx_save) & 63;
-			/* Compute code */
-			for (int i = 0; i < vsize; i = i + 1) {
-				fRec22[(i + fRec22_idx) & 63] = fSlow10 + fConst2 * fRec22[(i + fRec22_idx - 1) & 63];
-			}
-			/* Post code */
-			fRec22_idx_save = vsize;
-			/* Recursive loop 29 */
+			/* Recursive loop 30 */
 			/* Pre code */
 			fRec0_idx = (fRec0_idx + fRec0_idx_save) & 63;
 			fRec15_idx = (fRec15_idx + fRec15_idx_save) & 63;
@@ -692,20 +698,15 @@ struct OptomotristDSP {
 			fRec15_idx_save = vsize;
 			fRec16_idx_save = vsize;
 			fRec0_idx_save = vsize;
-			/* Vectorizable loop 30 */
-			/* Compute code */
-			for (int i = 0; i < vsize; i = i + 1) {
-				fZec20[i] = 1.0f - 0.01f * fRec22[(i + fRec22_idx) & 63];
-			}
 			/* Vectorizable loop 31 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
-				output0[i] = FAUSTFLOAT(0.01f * fRec1[i] * fRec22[(i + fRec22_idx) & 63] + float(input0[i]) * fZec20[i]);
+				output1[i] = FAUSTFLOAT(0.01f * fRec22[(i + fRec22_idx) & 63] * fRec2[i] + float(input1[i]) * fZec20[i]);
 			}
 			/* Vectorizable loop 32 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
-				output1[i] = FAUSTFLOAT(0.01f * fRec22[(i + fRec22_idx) & 63] * fRec2[i] + float(input1[i]) * fZec20[i]);
+				output0[i] = FAUSTFLOAT(0.01f * fRec1[i] * fRec22[(i + fRec22_idx) & 63] + float(input0[i]) * fZec20[i]);
 			}
 		}
 	}

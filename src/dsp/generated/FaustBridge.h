@@ -92,6 +92,7 @@ public:
     float getScEmphasis() const { return loadParam(scEmphasisParam_); }
     float getScHpf() const { return loadParam(scHpfParam_); }
     float getT4Bias() const { return loadParam(t4BiasParam_); }
+    float getGrMeter() const { return dsp_.fHbargraph0; }
 
 private:
     static float loadParam(const std::atomic<float>* param, float fallback = 0.0f) noexcept
