@@ -15,6 +15,8 @@ public:
     explicit FaustBridge(juce::AudioProcessorValueTreeState& apvts)
         : apvts_(apvts)
     {
+        bypassParam_ = apvts_.getRawParameterValue(FaustParamIDs::bypass);
+        inputDriveParam_ = apvts_.getRawParameterValue(FaustParamIDs::inputDrive);
         peakReductionParam_ = apvts_.getRawParameterValue(FaustParamIDs::peakReduction);
         gainParam_ = apvts_.getRawParameterValue(FaustParamIDs::gain);
         limitModeParam_ = apvts_.getRawParameterValue(FaustParamIDs::limitMode);
@@ -33,12 +35,14 @@ public:
     {
         const int numSamples = buffer.getNumSamples();
 
-        dsp_.fHslider2 = loadParam(peakReductionParam_);
-        dsp_.fHslider4 = loadParam(gainParam_);
-        dsp_.fCheckbox0 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
-        dsp_.fHslider1 = loadParam(scEmphasisParam_);
+        dsp_.fCheckbox0 = loadParam(bypassParam_) > 0.5f ? 1.0f : 0.0f;
+        dsp_.fHslider1 = loadParam(inputDriveParam_);
+        dsp_.fHslider3 = loadParam(peakReductionParam_);
+        dsp_.fHslider5 = loadParam(gainParam_);
+        dsp_.fCheckbox1 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
+        dsp_.fHslider2 = loadParam(scEmphasisParam_);
         dsp_.fHslider0 = loadParam(scHpfParam_);
-        dsp_.fHslider3 = loadParam(t4BiasParam_);
+        dsp_.fHslider4 = loadParam(t4BiasParam_);
 
         float* inputChannels[2];
         float* outputChannels[2];
@@ -80,6 +84,8 @@ public:
     OptomotristDSP& getDSP() { return dsp_; }
     const OptomotristDSP& getDSP() const { return dsp_; }
 
+    bool getBypass() const { return loadParam(bypassParam_) > 0.5f; }
+    float getInputDrive() const { return loadParam(inputDriveParam_); }
     float getPeakReduction() const { return loadParam(peakReductionParam_); }
     float getGain() const { return loadParam(gainParam_); }
     bool getLimitMode() const { return loadParam(limitModeParam_) > 0.5f; }
@@ -104,6 +110,8 @@ private:
 
     OptomotristDSP dsp_;
     juce::AudioProcessorValueTreeState& apvts_;
+    std::atomic<float>* bypassParam_ = nullptr;
+    std::atomic<float>* inputDriveParam_ = nullptr;
     std::atomic<float>* peakReductionParam_ = nullptr;
     std::atomic<float>* gainParam_ = nullptr;
     std::atomic<float>* limitModeParam_ = nullptr;

@@ -6,6 +6,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace FaustParamIDs {
+    static constexpr const char* bypass = "bypass";
+    static constexpr const char* inputDrive = "input_drive";
     static constexpr const char* peakReduction = "peak_reduction";
     static constexpr const char* gain = "gain";
     static constexpr const char* limitMode = "limit_mode";
@@ -20,6 +22,15 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{FaustParamIDs::bypass, 1},
+        "Bypass",
+        false));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{FaustParamIDs::inputDrive, 1},
+        "Input Drive",
+        juce::NormalisableRange<float>(-20.0f, 20.0f, 0.1f),
+        0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{FaustParamIDs::peakReduction, 1},
         "Peak Reduction",

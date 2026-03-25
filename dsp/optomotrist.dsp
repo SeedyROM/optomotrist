@@ -9,17 +9,19 @@ import("stdfaust.lib");
 //==========================================================================
 
 // --- Front Panel (authentic LA-2A controls) ---
-peak_reduction = hslider("[1][id:peak_reduction] Peak Reduction", 50, 0, 100, 0.1) : si.smoo;
-makeup_gain_db = hslider("[2][id:gain] Gain", 0, -20, 40, 0.1) : si.smoo;
-limit_mode     = checkbox("[3][id:limit_mode] Limit/Compress");
+bypass         = checkbox("[1][id:bypass] Bypass");
+input_drive_db = hslider("[2][id:input_drive] Input Drive", 0, -20, 20, 0.1) : si.smoo;
+peak_reduction = hslider("[3][id:peak_reduction] Peak Reduction", 50, 0, 100, 0.1) : si.smoo;
+makeup_gain_db = hslider("[4][id:gain] Gain", 0, -20, 40, 0.1) : si.smoo;
+limit_mode     = checkbox("[5][id:limit_mode] Limit/Compress");
 
 // --- Back Panel ("screw" controls) ---
-sc_emphasis = hslider("[4][id:sc_emphasis] SC Emphasis", 50, 0, 100, 0.1) : si.smoo;
-sc_hpf_freq = hslider("[5][id:sc_hpf] SC HPF", 20, 20, 500, 1) : si.smoo;
-t4_bias     = hslider("[6][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
+sc_emphasis = hslider("[6][id:sc_emphasis] SC Emphasis", 50, 0, 100, 0.1) : si.smoo;
+sc_hpf_freq = hslider("[7][id:sc_hpf] SC HPF", 20, 20, 500, 1) : si.smoo;
+t4_bias     = hslider("[8][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
 
 // --- Metering (output only, not an APVTS parameter) ---
-gr_meter = hbargraph("[7][id:gr_meter] GR", -30, 0);
+gr_meter = hbargraph("[9][id:gr_meter] GR", -60, 0);
 
 //==========================================================================
 // Utilities
@@ -27,9 +29,6 @@ gr_meter = hbargraph("[7][id:gr_meter] GR", -30, 0);
 
 // Safe tau-to-pole conversion (prevents division by zero)
 tau2p(t) = ba.tau2pole(max(0.0001, t));
-
-// Custom tanh (in case ma.tanh is unavailable)
-my_tanh(x) = (exp(2.0*x) - 1.0) / (exp(2.0*x) + 1.0);
 
 // dB conversions
 db2lin(x) = 10.0 ^ (x / 20.0);
@@ -169,14 +168,41 @@ letrec {
 //==========================================================================
 // Tube Saturation Stage
 //==========================================================================
-// Asymmetric tanh waveshaper for even harmonic generation.
-// Offset creates asymmetry; DC blocker removes resulting offset.
+// Models a 12AX7 triode stage with:
+//   1. Asymmetric soft-clip transfer function:
+//      - Positive swing (grid conduction): clips harder (k=0.6)
+//      - Negative swing (cutoff region): clips gently (k=0.15)
+//      - Produces 2nd-harmonic-dominant spectrum (H2 ~4dB above H3)
+//   2. Feedback lowpass for frequency-dependent saturation:
+//      - Lows pass through cleaner (feedback reduces net drive)
+//      - Highs get more harmonic content (feedback attenuated)
+//      - Models plate impedance / coupling cap interaction
+//   3. DC blocker to remove asymmetry-induced offset
 
-tube_stage(x) = saturated : fi.dcblocker
+// Asymmetric waveshaper: rational soft-clip with different
+// coefficients for positive (grid conduction) and negative (cutoff)
+triode_clip(x) = clipped / drive
 with {
-    drive = 1.5;
-    offset = 0.1;  // asymmetry for even harmonics
-    saturated = (my_tanh(x * drive + offset) - my_tanh(offset)) / drive;
+    drive = 1.15;   // subtle — this is a compressor, not a guitar amp
+    k_pos = 0.6;   // harder clip on positive (grid conduction)
+    k_neg = 0.15;  // gentle clip on negative (cutoff region)
+    xd = x * drive;
+    clipped = select2(xd >= 0,
+        xd / (1.0 - k_neg * xd),    // negative: xd<0, so -k_neg*xd is positive
+        xd / (1.0 + k_pos * xd));   // positive: soft clip toward ceiling
+};
+
+// Tube stage with feedback lowpass
+// Feedback loop: output is lowpass-filtered and subtracted from input,
+// so low frequencies see reduced net drive (cleaner) while highs
+// see full drive (more harmonics). Cutoff ~1kHz, amount 0.3.
+tube_stage(x) = tube_out
+letrec {
+    'fb_lp = fb_lp * fb_pole + tube_out * (1.0 - fb_pole)
+    with {
+        fb_pole = exp(-2.0 * ma.PI * 1000.0 / ma.SR);
+    };
+    'tube_out = triode_clip(x - 0.3 * fb_lp) : fi.dcblocker;
 };
 
 //==========================================================================
@@ -195,6 +221,7 @@ with {
 
 stereo_compressor = (stereo_block ~ _) : (!, _, _)
 with {
+    input_drive_lin = db2lin(input_drive_db);
     makeup_lin = db2lin(makeup_gain_db);
 
     // Core processing block
@@ -202,10 +229,14 @@ with {
     // Outputs: new gr_db (for feedback), processed L, processed R
     stereo_block(gr_prev, l, r) = gr_new, out_l, out_r
     with {
+        // Input drive: boosts signal before compression and sidechain
+        driven_l = l * input_drive_lin;
+        driven_r = r * input_drive_lin;
+
         // Apply previous gain reduction (gr_prev is negative dB)
         gr_lin = db2lin(gr_prev);
-        comp_l = l * gr_lin;
-        comp_r = r * gr_lin;
+        comp_l = driven_l * gr_lin;
+        comp_r = driven_r * gr_lin;
 
         // Tube saturation on compressed signal
         sat_l = tube_stage(comp_l);
@@ -215,13 +246,9 @@ with {
         out_l = sat_l * makeup_lin;
         out_r = sat_r * makeup_lin;
 
-        // --- Sidechain path ---
-        // 1. Filter each channel's bipolar signal (HPF + emphasis)
-        // 2. Rectify and take max of channels
-        // 3. Peak-detect for stable per-cycle envelope
-        // 4. Convert to dB → gain computer (PR controls threshold) → T4 cell
-        sc_l = sc_filter(l);
-        sc_r = sc_filter(r);
+        // --- Sidechain path (sees the driven signal) ---
+        sc_l = sc_filter(driven_l);
+        sc_r = sc_filter(driven_r);
         sc_peak = peak_detector(max(abs(sc_l), abs(sc_r)));
 
         // Gain computer uses peak-detected level; PR is internal to gain_computer
@@ -237,4 +264,4 @@ with {
 // Process
 //==========================================================================
 
-process = stereo_compressor;
+process = ba.bypass2(bypass, stereo_compressor);
