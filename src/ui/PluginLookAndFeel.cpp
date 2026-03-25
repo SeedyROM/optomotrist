@@ -293,8 +293,14 @@ juce::Slider::SliderLayout PluginLookAndFeel::getSliderLayout(juce::Slider &slid
 
   auto bounds = slider.getLocalBounds();
   layout.sliderBounds = bounds.withTrimmedTop(6).withTrimmedBottom(28);
-  layout.textBoxBounds =
-      juce::Rectangle<int>(bounds.getX() + 8, bounds.getBottom() - 26, bounds.getWidth() - 16, 22);
+
+  // Size text box to ~24px wider than the knob diameter, centred
+  const int sliderH = layout.sliderBounds.getHeight();
+  const int sliderW = layout.sliderBounds.getWidth();
+  const float knobDiameter = (static_cast<float>(juce::jmin(sliderW, sliderH)) - 10.0f) * 0.82f;
+  const int textBoxW = juce::jmax(68, static_cast<int>(knobDiameter) + 24);
+  const int textBoxX = bounds.getCentreX() - textBoxW / 2;
+  layout.textBoxBounds = juce::Rectangle<int>(textBoxX, bounds.getBottom() - 26, textBoxW, 22);
   return layout;
 }
 

@@ -111,6 +111,7 @@ target_sources(Optomotrist PRIVATE
     src/components/brand/TopBar.cpp
     src/presets/PluginPresetManager.cpp
     src/components/controls/RotaryKnob.cpp
+    src/components/meters/GainReductionMeter.cpp
     src/ui/PluginLookAndFeel.cpp
     )
 

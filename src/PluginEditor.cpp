@@ -7,11 +7,42 @@
 #include <memory>
 OptomotristAudioProcessorEditor::OptomotristAudioProcessorEditor(
     OptomotristAudioProcessor &p)
-    : AudioProcessorEditor(&p), audioProcessor(p) {
-setLookAndFeel(&pluginLnf);
-addAndMakeVisible(topBar);
+    : AudioProcessorEditor(&p),
+      audioProcessor(p),
+      inputDriveKnob(p.apvts, RuntimeParamIDs::inputDrive, "INPUT DRIVE", " dB"),
+      peakReductionKnob(p.apvts, RuntimeParamIDs::peakReduction, "PEAK REDUCTION"),
+      gainKnob(p.apvts, RuntimeParamIDs::gain, "GAIN", " dB"),
+      mixKnob(p.apvts, RuntimeParamIDs::mix, "MIX", "%"),
+      scEmphasisKnob(p.apvts, RuntimeParamIDs::scEmphasis, "SC EMPHASIS", "%"),
+      scHpfKnob(p.apvts, RuntimeParamIDs::scHpf, "SC HPF", " Hz"),
+      t4BiasKnob(p.apvts, RuntimeParamIDs::t4Bias, "T4 BIAS", "%") {
+  setLookAndFeel(&pluginLnf);
+  addAndMakeVisible(topBar);
 
-topBar.onSelectSlotA = [this] {
+  // --- Add controls ---
+  addAndMakeVisible(inputDriveKnob);
+  addAndMakeVisible(peakReductionKnob);
+  addAndMakeVisible(gainKnob);
+  addAndMakeVisible(mixKnob);
+  addAndMakeVisible(scEmphasisKnob);
+  addAndMakeVisible(scHpfKnob);
+  addAndMakeVisible(t4BiasKnob);
+
+  // --- Limit/Compress toggle ---
+  limitModeToggle.setButtonText("LIMIT");
+  addAndMakeVisible(limitModeToggle);
+  limitModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+      p.apvts, RuntimeParamIDs::limitMode, limitModeToggle);
+
+  // --- GR meter ---
+  addAndMakeVisible(grMeter);
+  grMeter.setMeterSource([&p] { return p.getGainReductionDb(); });
+
+  // --- Output meter on Gain knob ---
+  gainKnob.setMeterSource([&p] { return p.getOutputMeterPeak(); });
+
+  // --- TopBar callbacks ---
+  topBar.onSelectSlotA = [this] {
     audioProcessor.setActiveABSlot(OptomotristAudioProcessor::ABSlot::A);
     topBar.setActiveABSlot(true);
     refreshPresetControls();
@@ -30,22 +61,20 @@ topBar.onSelectSlotA = [this] {
   refreshPresetControls();
 
   setResizable(true, true);
-  setResizeLimits(minEditorWidth, minEditorHeight, 1072, 644);
+  setResizeLimits(minEditorWidth, minEditorHeight, 1072, 610);
   setSize(minEditorWidth, minEditorHeight);
 
   startTimerHz(24);
 }
 
 OptomotristAudioProcessorEditor::~OptomotristAudioProcessorEditor() {
-stopTimer();
+  stopTimer();
   setLookAndFeel(nullptr);
 }
 
 void OptomotristAudioProcessorEditor::timerCallback() {
-  // Refresh metered knobs here at ~24 Hz. For example:
-  //   myKnob.refreshMeter();
-  // To wire a knob to a meter source, call in the constructor:
-  //   myKnob.setMeterSource([&p] { return p.getOutputMeterPeak(); });
+  gainKnob.refreshMeter();
+  grMeter.refresh();
 }
 
 void OptomotristAudioProcessorEditor::refreshPresetControls() {
@@ -110,12 +139,166 @@ void OptomotristAudioProcessorEditor::showOptionsMenu() {
         refreshPresetControls();
       });
 }
+
+void OptomotristAudioProcessorEditor::drawSectionPanel(juce::Graphics &g,
+                                                        juce::Rectangle<int> bounds,
+                                                        const juce::String &title) {
+  namespace C = OptomotristColors;
+  const auto fb = bounds.toFloat();
+  constexpr float cornerRadius = 6.0f;
+
+  // Background
+  g.setColour(juce::Colour(C::panelBg));
+  g.fillRoundedRectangle(fb, cornerRadius);
+
+  // Border
+  g.setColour(juce::Colour(C::panelBorder));
+  g.drawRoundedRectangle(fb.reduced(0.5f), cornerRadius, 1.0f);
+
+  // Section title
+  if (title.isNotEmpty()) {
+    g.setColour(juce::Colour(C::sectionTitle));
+    g.setFont(juce::Font(11.0f, juce::Font::bold));
+    g.drawText(title,
+               bounds.getX() + 12,
+               bounds.getY() + 2,
+               bounds.getWidth() - 24,
+               24,
+               juce::Justification::centredLeft);
+  }
+}
+
 void OptomotristAudioProcessorEditor::paint(juce::Graphics &g) {
-g.fillAll(juce::Colour(OptomotristColors::background));
+  namespace C = OptomotristColors;
+  g.fillAll(juce::Colour(C::background));
+
+  auto bounds = getLocalBounds();
+  bounds.removeFromTop(50); // TopBar
+  bounds.reduce(12, 12);    // Content padding
+
+  const int sectionGap = 8;
+
+  // --- Top row: COMPRESSOR (with GR inside) | OUTPUT ---
+  const int topRowHeight = juce::jlimit(240, 380,
+                                        (bounds.getHeight() * 2) / 3);
+  auto topRow = bounds.removeFromTop(topRowHeight);
+  bounds.removeFromTop(sectionGap);
+
+  // Column widths: compressor ~60%, output ~40%
+  const int totalW = topRow.getWidth() - sectionGap;
+  const int compressorW = totalW * 3 / 5;
+
+  auto compressorSection = topRow.removeFromLeft(compressorW);
+  topRow.removeFromLeft(sectionGap);
+  auto outputSection = topRow;
+
+  drawSectionPanel(g, compressorSection, "COMPRESSOR");
+  drawSectionPanel(g, outputSection, "OUTPUT");
+
+  // --- Bottom row: SIDECHAIN ---
+  auto bottomRow = bounds;
+  drawSectionPanel(g, bottomRow, "SIDECHAIN");
 }
 
 void OptomotristAudioProcessorEditor::resized() {
   auto bounds = getLocalBounds();
   topBar.setBounds(bounds.removeFromTop(50));
 
+  bounds.reduce(12, 12); // Content padding
+  const int sectionGap = 8;
+  const int sectionPadding = 8;
+  const int titleHeight = 24;
+
+  // --- Top row: COMPRESSOR (with GR inside) | OUTPUT ---
+  const int topRowHeight = juce::jlimit(240, 380,
+                                        (bounds.getHeight() * 2) / 3);
+  auto topRow = bounds.removeFromTop(topRowHeight);
+  bounds.removeFromTop(sectionGap);
+
+  // Column widths: compressor ~60%, output ~40%
+  const int totalW = topRow.getWidth() - sectionGap;
+  const int compressorW = totalW * 3 / 5;
+
+  auto compressorSection = topRow.removeFromLeft(compressorW);
+  topRow.removeFromLeft(sectionGap);
+  auto outputSection = topRow;
+
+  // --- Compressor section: GR meter on top, knobs below, Limit toggle at bottom ---
+  {
+    auto area = compressorSection.reduced(sectionPadding);
+    area.removeFromTop(titleHeight);
+
+    const int vGap = 10;
+    const int toggleH = 30;
+    const int knobRowH = 120; // fixed height for the knob row
+
+    // GR meter gets everything above the knobs + toggle
+    const int grH = area.getHeight() - knobRowH - toggleH - vGap * 2;
+
+    // GR meter on top — use full section width with 20px margins
+    {
+      auto grArea = compressorSection;
+      grArea.removeFromTop(sectionPadding + titleHeight);
+      grArea = grArea.removeFromTop(grH);
+      grArea.reduce(20, 0); // 20px horizontal margin
+      grMeter.setBounds(grArea);
+    }
+    area.removeFromTop(grH);
+    area.removeFromTop(vGap);
+
+    // Knobs row: Input Drive + Peak Reduction side by side
+    auto knobRow = area.removeFromTop(knobRowH);
+    area.removeFromTop(vGap);
+    {
+      const int hGap = 8;
+      const int knobW = (knobRow.getWidth() - hGap) / 2;
+      inputDriveKnob.setBounds(knobRow.removeFromLeft(knobW));
+      knobRow.removeFromLeft(hGap);
+      peakReductionKnob.setBounds(knobRow);
+    }
+
+    // Limit toggle centred at bottom
+    {
+      const int toggleW = juce::jmin(80, area.getWidth());
+      limitModeToggle.setBounds(
+          area.getCentreX() - toggleW / 2,
+          area.getCentreY() - toggleH / 2,
+          toggleW,
+          toggleH);
+    }
+  }
+
+  // --- Output section: Gain + Mix stacked ---
+  {
+    auto area = outputSection.reduced(sectionPadding);
+    area.removeFromTop(titleHeight);
+
+    const int vGap = 6;
+    const int knobH = (area.getHeight() - vGap) / 2;
+
+    gainKnob.setBounds(area.removeFromTop(knobH));
+    area.removeFromTop(vGap);
+    mixKnob.setBounds(area);
+  }
+
+  // --- Bottom row: Sidechain controls ---
+  auto bottomRow = bounds;
+  {
+    auto area = bottomRow.reduced(sectionPadding);
+    area.removeFromTop(titleHeight);
+
+    const int hGap = 8;
+    const int numControls = 3;
+    const int knobW = (area.getWidth() - hGap * (numControls - 1)) / numControls;
+
+    auto scEmphBounds = area.removeFromLeft(knobW);
+    area.removeFromLeft(hGap);
+    auto scHpfBounds = area.removeFromLeft(knobW);
+    area.removeFromLeft(hGap);
+    auto t4BiasBounds = area;
+
+    scEmphasisKnob.setBounds(scEmphBounds);
+    scHpfKnob.setBounds(scHpfBounds);
+    t4BiasKnob.setBounds(t4BiasBounds);
+  }
 }

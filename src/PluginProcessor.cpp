@@ -369,6 +369,7 @@ void OptomotristAudioProcessor::processBlock(juce::AudioBuffer<float> &buffer,
   }
 
 faustBridge.process(buffer, totalNumInputChannels, totalNumOutputChannels);
+gainReductionDb.store(faustBridge.getDSP().fHbargraph0, std::memory_order_relaxed);
 if (shouldMeasurePeaks) {
     updatePeakMeter(outputMeterPeak,
                     juce::jlimit(0.0f, 1.2f, getMaxPeak(totalNumOutputChannels)),
