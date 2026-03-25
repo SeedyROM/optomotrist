@@ -121,7 +121,6 @@ struct OptomotristDSP {
 	float fRec18[64];
 	int fRec18_idx;
 	int fRec18_idx_save;
-	FAUSTFLOAT fCheckbox2;
 	float fRec19[64];
 	int fRec19_idx;
 	int fRec19_idx_save;
@@ -214,7 +213,6 @@ struct OptomotristDSP {
 		fCheckbox1 = FAUSTFLOAT(0.0f);
 		fHslider4 = FAUSTFLOAT(5e+01f);
 		fHslider5 = FAUSTFLOAT(0.0f);
-		fCheckbox2 = FAUSTFLOAT(0.0f);
 	}
 	
 	virtual void instanceClear() {
@@ -361,9 +359,6 @@ struct OptomotristDSP {
 	
 	virtual void buildUserInterface(UI* ui_interface) {
 		ui_interface->openVerticalBox("optomotrist");
-		ui_interface->declare(&fHbargraph0, "10", "");
-		ui_interface->declare(&fHbargraph0, "id", "gr_meter");
-		ui_interface->addHorizontalBargraph("GR", &fHbargraph0, FAUSTFLOAT(-6e+01f), FAUSTFLOAT(0.0f));
 		ui_interface->declare(&fCheckbox0, "1", "");
 		ui_interface->declare(&fCheckbox0, "id", "bypass");
 		ui_interface->addCheckButton("Bypass", &fCheckbox0);
@@ -376,22 +371,21 @@ struct OptomotristDSP {
 		ui_interface->declare(&fHslider5, "4", "");
 		ui_interface->declare(&fHslider5, "id", "gain");
 		ui_interface->addHorizontalSlider("Gain", &fHslider5, FAUSTFLOAT(0.0f), FAUSTFLOAT(-2e+01f), FAUSTFLOAT(4e+01f), FAUSTFLOAT(0.1f));
-		ui_interface->declare(&fCheckbox2, "5", "");
-		ui_interface->declare(&fCheckbox2, "default", "1");
-		ui_interface->declare(&fCheckbox2, "id", "auto_gain");
-		ui_interface->addCheckButton("Auto Gain", &fCheckbox2);
-		ui_interface->declare(&fCheckbox1, "6", "");
+		ui_interface->declare(&fCheckbox1, "5", "");
 		ui_interface->declare(&fCheckbox1, "id", "limit_mode");
 		ui_interface->addCheckButton("Limit/Compress", &fCheckbox1);
-		ui_interface->declare(&fHslider2, "7", "");
+		ui_interface->declare(&fHslider2, "6", "");
 		ui_interface->declare(&fHslider2, "id", "sc_emphasis");
 		ui_interface->addHorizontalSlider("SC Emphasis", &fHslider2, FAUSTFLOAT(5e+01f), FAUSTFLOAT(0.0f), FAUSTFLOAT(1e+02f), FAUSTFLOAT(0.1f));
-		ui_interface->declare(&fHslider0, "8", "");
+		ui_interface->declare(&fHslider0, "7", "");
 		ui_interface->declare(&fHslider0, "id", "sc_hpf");
 		ui_interface->addHorizontalSlider("SC HPF", &fHslider0, FAUSTFLOAT(2e+01f), FAUSTFLOAT(2e+01f), FAUSTFLOAT(5e+02f), FAUSTFLOAT(1.0f));
-		ui_interface->declare(&fHslider4, "9", "");
+		ui_interface->declare(&fHslider4, "8", "");
 		ui_interface->declare(&fHslider4, "id", "t4_bias");
 		ui_interface->addHorizontalSlider("T4 Bias", &fHslider4, FAUSTFLOAT(5e+01f), FAUSTFLOAT(0.0f), FAUSTFLOAT(1e+02f), FAUSTFLOAT(0.1f));
+		ui_interface->declare(&fHbargraph0, "9", "");
+		ui_interface->declare(&fHbargraph0, "id", "gr_meter");
+		ui_interface->addHorizontalBargraph("GR", &fHbargraph0, FAUSTFLOAT(-6e+01f), FAUSTFLOAT(0.0f));
 		ui_interface->closeBox();
 	}
 	
@@ -430,10 +424,8 @@ struct OptomotristDSP {
 		float fZec17[32];
 		float fSlow10 = fConst1 * float(fHslider5);
 		float fZec18[32];
-		int iSlow11 = int(float(fCheckbox2));
-		float fZec19[32];
 		float fRec1[32];
-		float fZec20[32];
+		float fZec19[32];
 		float fRec2[32];
 		for (int vindex = 0; vindex < count; vindex = vindex + 32) {
 			FAUSTFLOAT* input0 = &input0_ptr[vindex];
@@ -554,15 +546,6 @@ struct OptomotristDSP {
 			}
 			/* Recursive loop 15 */
 			/* Pre code */
-			fRec5_idx = (fRec5_idx + fRec5_idx_save) & 63;
-			/* Compute code */
-			for (int i = 0; i < vsize; i = i + 1) {
-				fRec5[(i + fRec5_idx) & 63] = fRec5[(i + fRec5_idx - 1) & 63] + (fZec5[i] - fRec5[(i + fRec5_idx - 1) & 63]) * (1.0f - ((fZec5[i] > fRec5[(i + fRec5_idx - 1) & 63]) ? fConst8 : fConst7));
-			}
-			/* Post code */
-			fRec5_idx_save = vsize;
-			/* Recursive loop 16 */
-			/* Pre code */
 			fRec13_idx = (fRec13_idx + fRec13_idx_save) & 63;
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
@@ -570,6 +553,15 @@ struct OptomotristDSP {
 			}
 			/* Post code */
 			fRec13_idx_save = vsize;
+			/* Recursive loop 16 */
+			/* Pre code */
+			fRec5_idx = (fRec5_idx + fRec5_idx_save) & 63;
+			/* Compute code */
+			for (int i = 0; i < vsize; i = i + 1) {
+				fRec5[(i + fRec5_idx) & 63] = fRec5[(i + fRec5_idx - 1) & 63] + (fZec5[i] - fRec5[(i + fRec5_idx - 1) & 63]) * (1.0f - ((fZec5[i] > fRec5[(i + fRec5_idx - 1) & 63]) ? fConst8 : fConst7));
+			}
+			/* Post code */
+			fRec5_idx_save = vsize;
 			/* Vectorizable loop 17 */
 			/* Compute code */
 			for (int i = 0; i < vsize; i = i + 1) {
@@ -664,14 +656,13 @@ struct OptomotristDSP {
 				fYec2[(i + fYec2_idx) & 63] = (((1.15f * fZec17[i]) >= 0.0f) ? 1.15f * (fZec17[i] / (0.69f * fZec17[i] + 1.0f)) : 1.15f * (fZec17[i] / (1.0f - 0.1725f * fZec17[i])));
 				fRec17[(i + fRec17_idx) & 63] = 0.995f * fRec17[(i + fRec17_idx - 1) & 63] + 0.8695652f * (fYec2[(i + fYec2_idx) & 63] - fYec2[(i + fYec2_idx - 1) & 63]);
 				fRec16[(i + fRec16_idx) & 63] = fRec17[(i + fRec17_idx) & 63];
-				fZec19[i] = std::pow(1e+01f, 0.05f * ((iSlow11) ? -(fRec0[(i + fRec0_idx - 1) & 63]) : 0.0f));
-				fRec1[i] = fRec16[(i + fRec16_idx) & 63] * fZec18[i] * fZec19[i];
+				fRec1[i] = fRec16[(i + fRec16_idx) & 63] * fZec18[i];
 				fRec19[(i + fRec19_idx) & 63] = fConst10 * fRec19[(i + fRec19_idx - 1) & 63] + fConst11 * fRec20[(i + fRec20_idx - 1) & 63];
-				fZec20[i] = fYec1[(i + fYec1_idx) & 63] * fZec16[i] - 0.3f * fRec19[(i + fRec19_idx - 1) & 63];
-				fYec3[(i + fYec3_idx) & 63] = (((1.15f * fZec20[i]) >= 0.0f) ? 1.15f * (fZec20[i] / (0.69f * fZec20[i] + 1.0f)) : 1.15f * (fZec20[i] / (1.0f - 0.1725f * fZec20[i])));
+				fZec19[i] = fYec1[(i + fYec1_idx) & 63] * fZec16[i] - 0.3f * fRec19[(i + fRec19_idx - 1) & 63];
+				fYec3[(i + fYec3_idx) & 63] = (((1.15f * fZec19[i]) >= 0.0f) ? 1.15f * (fZec19[i] / (0.69f * fZec19[i] + 1.0f)) : 1.15f * (fZec19[i] / (1.0f - 0.1725f * fZec19[i])));
 				fRec21[(i + fRec21_idx) & 63] = 0.995f * fRec21[(i + fRec21_idx - 1) & 63] + 0.8695652f * (fYec3[(i + fYec3_idx) & 63] - fYec3[(i + fYec3_idx - 1) & 63]);
 				fRec20[(i + fRec20_idx) & 63] = fRec21[(i + fRec21_idx) & 63];
-				fRec2[i] = fRec20[(i + fRec20_idx) & 63] * fZec18[i] * fZec19[i];
+				fRec2[i] = fRec20[(i + fRec20_idx) & 63] * fZec18[i];
 			}
 			/* Post code */
 			fYec3_idx_save = vsize;
@@ -705,26 +696,24 @@ struct OptomotristDSP {
 	#define FAUST_COMPILATION_OPIONS "-lang cpp -ct 1 -cn OptomotristDSP -scn  -es 1 -mcd 0 -mdd 1024 -mdy 33 -uim -single -ftz 0 -vec -lv 1 -vs 32"
 	#define FAUST_INPUTS 2
 	#define FAUST_OUTPUTS 2
-	#define FAUST_ACTIVES 9
+	#define FAUST_ACTIVES 8
 	#define FAUST_PASSIVES 1
 
-	FAUST_ADDHORIZONTALBARGRAPH("GR", fHbargraph0, -6e+01f, 0.0f);
 	FAUST_ADDCHECKBOX("Bypass", fCheckbox0);
 	FAUST_ADDHORIZONTALSLIDER("Input Drive", fHslider1, 0.0f, -2e+01f, 2e+01f, 0.1f);
 	FAUST_ADDHORIZONTALSLIDER("Peak Reduction", fHslider3, 5e+01f, 0.0f, 1e+02f, 0.1f);
 	FAUST_ADDHORIZONTALSLIDER("Gain", fHslider5, 0.0f, -2e+01f, 4e+01f, 0.1f);
-	FAUST_ADDCHECKBOX("Auto Gain", fCheckbox2);
 	FAUST_ADDCHECKBOX("Limit/Compress", fCheckbox1);
 	FAUST_ADDHORIZONTALSLIDER("SC Emphasis", fHslider2, 5e+01f, 0.0f, 1e+02f, 0.1f);
 	FAUST_ADDHORIZONTALSLIDER("SC HPF", fHslider0, 2e+01f, 2e+01f, 5e+02f, 1.0f);
 	FAUST_ADDHORIZONTALSLIDER("T4 Bias", fHslider4, 5e+01f, 0.0f, 1e+02f, 0.1f);
+	FAUST_ADDHORIZONTALBARGRAPH("GR", fHbargraph0, -6e+01f, 0.0f);
 
 	#define FAUST_LIST_ACTIVES(p) \
 		p(CHECKBOX, Bypass, "Bypass", fCheckbox0, 0.0f, 0.0f, 1.0f, 1.0f) \
 		p(HORIZONTALSLIDER, Input_Drive, "Input Drive", fHslider1, 0.0f, -2e+01f, 2e+01f, 0.1f) \
 		p(HORIZONTALSLIDER, Peak_Reduction, "Peak Reduction", fHslider3, 5e+01f, 0.0f, 1e+02f, 0.1f) \
 		p(HORIZONTALSLIDER, Gain, "Gain", fHslider5, 0.0f, -2e+01f, 4e+01f, 0.1f) \
-		p(CHECKBOX, Auto_Gain, "Auto Gain", fCheckbox2, 0.0f, 0.0f, 1.0f, 1.0f) \
 		p(CHECKBOX, Limit/Compress, "Limit/Compress", fCheckbox1, 0.0f, 0.0f, 1.0f, 1.0f) \
 		p(HORIZONTALSLIDER, SC_Emphasis, "SC Emphasis", fHslider2, 5e+01f, 0.0f, 1e+02f, 0.1f) \
 		p(HORIZONTALSLIDER, SC_HPF, "SC HPF", fHslider0, 2e+01f, 2e+01f, 5e+02f, 1.0f) \

@@ -10,7 +10,6 @@ namespace FaustParamIDs {
     static constexpr const char* inputDrive = "input_drive";
     static constexpr const char* peakReduction = "peak_reduction";
     static constexpr const char* gain = "gain";
-    static constexpr const char* autoGain = "auto_gain";
     static constexpr const char* limitMode = "limit_mode";
     static constexpr const char* scEmphasis = "sc_emphasis";
     static constexpr const char* scHpf = "sc_hpf";
@@ -42,10 +41,6 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         "Gain",
         juce::NormalisableRange<float>(-20.0f, 40.0f, 0.1f),
         0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterBool>(
-        juce::ParameterID{FaustParamIDs::autoGain, 1},
-        "Auto Gain",
-        true));
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID{FaustParamIDs::limitMode, 1},
         "Limit/Compress",
