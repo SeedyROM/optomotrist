@@ -9,10 +9,10 @@ import("stdfaust.lib");
 //==========================================================================
 
 // --- Front Panel (authentic LA-2A controls) ---
-bypass         = checkbox("[1][id:bypass] Bypass");
-input_drive_db = hslider("[2][id:input_drive] Input Drive", 0, -20, 20, 0.1) : si.smoo;
-peak_reduction = hslider("[3][id:peak_reduction] Peak Reduction", 50, 0, 100, 0.1) : si.smoo;
-makeup_gain_db = hslider("[4][id:gain] Gain", 0, -20, 40, 0.1) : si.smoo;
+input_drive_db = hslider("[1][id:input_drive] Input Drive", 0, -20, 20, 0.1) : si.smoo;
+peak_reduction = hslider("[2][id:peak_reduction] Peak Reduction", 50, 0, 100, 0.1) : si.smoo;
+makeup_gain_db = hslider("[3][id:gain] Gain", 0, -20, 40, 0.1) : si.smoo;
+mix            = hslider("[4][id:mix] Mix", 100, 0, 100, 0.1) : si.smoo;
 limit_mode     = checkbox("[5][id:limit_mode] Limit/Compress");
 
 // --- Back Panel ("screw" controls) ---
@@ -264,4 +264,4 @@ with {
 // Process
 //==========================================================================
 
-process = ba.bypass2(bypass, stereo_compressor);
+process = ef.dryWetMixer(mix / 100.0, stereo_compressor);

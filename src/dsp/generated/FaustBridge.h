@@ -15,10 +15,10 @@ public:
     explicit FaustBridge(juce::AudioProcessorValueTreeState& apvts)
         : apvts_(apvts)
     {
-        bypassParam_ = apvts_.getRawParameterValue(FaustParamIDs::bypass);
         inputDriveParam_ = apvts_.getRawParameterValue(FaustParamIDs::inputDrive);
         peakReductionParam_ = apvts_.getRawParameterValue(FaustParamIDs::peakReduction);
         gainParam_ = apvts_.getRawParameterValue(FaustParamIDs::gain);
+        mixParam_ = apvts_.getRawParameterValue(FaustParamIDs::mix);
         limitModeParam_ = apvts_.getRawParameterValue(FaustParamIDs::limitMode);
         scEmphasisParam_ = apvts_.getRawParameterValue(FaustParamIDs::scEmphasis);
         scHpfParam_ = apvts_.getRawParameterValue(FaustParamIDs::scHpf);
@@ -35,11 +35,11 @@ public:
     {
         const int numSamples = buffer.getNumSamples();
 
-        dsp_.fCheckbox0 = loadParam(bypassParam_) > 0.5f ? 1.0f : 0.0f;
         dsp_.fHslider1 = loadParam(inputDriveParam_);
         dsp_.fHslider3 = loadParam(peakReductionParam_);
         dsp_.fHslider5 = loadParam(gainParam_);
-        dsp_.fCheckbox1 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
+        dsp_.fHslider6 = loadParam(mixParam_);
+        dsp_.fCheckbox0 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
         dsp_.fHslider2 = loadParam(scEmphasisParam_);
         dsp_.fHslider0 = loadParam(scHpfParam_);
         dsp_.fHslider4 = loadParam(t4BiasParam_);
@@ -84,10 +84,10 @@ public:
     OptomotristDSP& getDSP() { return dsp_; }
     const OptomotristDSP& getDSP() const { return dsp_; }
 
-    bool getBypass() const { return loadParam(bypassParam_) > 0.5f; }
     float getInputDrive() const { return loadParam(inputDriveParam_); }
     float getPeakReduction() const { return loadParam(peakReductionParam_); }
     float getGain() const { return loadParam(gainParam_); }
+    float getMix() const { return loadParam(mixParam_); }
     bool getLimitMode() const { return loadParam(limitModeParam_) > 0.5f; }
     float getScEmphasis() const { return loadParam(scEmphasisParam_); }
     float getScHpf() const { return loadParam(scHpfParam_); }
@@ -110,10 +110,10 @@ private:
 
     OptomotristDSP dsp_;
     juce::AudioProcessorValueTreeState& apvts_;
-    std::atomic<float>* bypassParam_ = nullptr;
     std::atomic<float>* inputDriveParam_ = nullptr;
     std::atomic<float>* peakReductionParam_ = nullptr;
     std::atomic<float>* gainParam_ = nullptr;
+    std::atomic<float>* mixParam_ = nullptr;
     std::atomic<float>* limitModeParam_ = nullptr;
     std::atomic<float>* scEmphasisParam_ = nullptr;
     std::atomic<float>* scHpfParam_ = nullptr;
