@@ -33,11 +33,11 @@ public:
     {
         const int numSamples = buffer.getNumSamples();
 
-        dsp_.fHslider0 = loadParam(peakReductionParam_);
+        dsp_.fHslider2 = loadParam(peakReductionParam_);
         dsp_.fHslider4 = loadParam(gainParam_);
         dsp_.fCheckbox0 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
-        dsp_.fHslider2 = loadParam(scEmphasisParam_);
-        dsp_.fHslider1 = loadParam(scHpfParam_);
+        dsp_.fHslider1 = loadParam(scEmphasisParam_);
+        dsp_.fHslider0 = loadParam(scHpfParam_);
         dsp_.fHslider3 = loadParam(t4BiasParam_);
 
         float* inputChannels[2];

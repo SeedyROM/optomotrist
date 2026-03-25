@@ -19,7 +19,7 @@ sc_hpf_freq = hslider("[5][id:sc_hpf] SC HPF", 20, 20, 500, 1) : si.smoo;
 t4_bias     = hslider("[6][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
 
 // --- Metering (output only, not an APVTS parameter) ---
-gr_meter = hbargraph("[7][id:gr_meter] GR", -20, 0);
+gr_meter = hbargraph("[7][id:gr_meter] GR", -30, 0);
 
 //==========================================================================
 // Utilities
@@ -38,8 +38,9 @@ lin2db(x) = 20.0 * log10(max(x, 1e-30));
 //==========================================================================
 // Sidechain Filter
 //==========================================================================
+// Applied to the RAW BIPOLAR audio signal (not rectified).
 // Highpass to reject low frequency pumping, then add HF emphasis
-// to make compressor more sensitive to sibilance/presence
+// to make compressor more sensitive to sibilance/presence.
 
 sc_filter(x) = hpf_out + hf_emphasis_out
 with {
@@ -50,30 +51,63 @@ with {
 };
 
 //==========================================================================
+// Peak Detector
+//==========================================================================
+// Fast envelope follower to bridge across zero-crossings.
+// The T4 cell handles the musically meaningful attack/release shaping;
+// this just ensures the gain computer sees a stable per-cycle peak level.
+//   Attack:  ~0.1ms (near-instant peak capture)
+//   Release: ~5ms   (bridges zero crossings; decays within a few cycles)
+
+peak_detector(x) = peak_env
+letrec {
+    'peak_env = peak_env + (x - peak_env) * (1.0 - pole)
+    with {
+        is_attack = (x > peak_env);
+        att_pole = tau2p(0.0001);  // 0.1ms
+        rel_pole = tau2p(0.005);   // 5ms
+        pole = select2(is_attack, rel_pole, att_pole);
+    };
+};
+
+//==========================================================================
 // Gain Computer
 //==========================================================================
 // Soft-knee gain computation in dB domain.
-// Mode selects between compress (gentler ratio, wide knee)
-// and limit (high ratio, narrow knee).
+//
+// Peak Reduction controls the threshold: higher PR = lower threshold =
+// more signal above threshold = more compression. This models the real
+// LA-2A where PR controls EL panel drive (more drive = more light =
+// more photoresistor change = more gain reduction).
+//
+// PR also adds a small SC boost (0-10dB) for additional sensitivity
+// at high settings, matching the real unit's behavior at extremes.
 
 gain_computer(level_db) = gr_db
 with {
-    threshold = -20.0;
+    // Threshold sweeps from -10dB (PR=0, nothing compresses)
+    // down to -30dB (PR=100, quiet material compresses too)
+    pr_norm = peak_reduction / 100.0;
+    threshold = -10.0 - pr_norm * 20.0;
 
-    // Interpolate between compress and limit based on limit_mode
-    ratio  = select2(limit_mode, 3.5, 100.0);
-    knee_w = select2(limit_mode, 20.0, 6.0);
+    // Small SC boost at high PR settings (0 to 10dB)
+    sc_boost = pr_norm * 10.0;
+    boosted_level = level_db + sc_boost;
+
+    // Compress mode: gentle ratio, wide knee for smooth leveling
+    // Limit mode: high ratio, narrow knee for brickwall behavior
+    ratio  = select2(limit_mode, 4.0, 100.0);
+    knee_w = select2(limit_mode, 12.0, 6.0);
 
     half_knee = knee_w / 2.0;
-    over = level_db - threshold;
+    over = boosted_level - threshold;
 
     // Soft knee: below knee, in knee, above knee
-    gr_below = 0.0;
     gr_knee  = ((1.0 / ratio - 1.0) * (over + half_knee) * (over + half_knee))
                / (2.0 * knee_w);
     gr_above = (1.0 / ratio - 1.0) * over;
 
-    gr_db = (over < -half_knee) * gr_below
+    gr_db = (over < -half_knee) * 0.0
           + (over >= -half_knee) * (over <= half_knee) * gr_knee
           + (over > half_knee) * gr_above;
 };
@@ -81,48 +115,54 @@ with {
 //==========================================================================
 // T4 Opto Cell Model
 //==========================================================================
-// Models the CdS photoresistor behavior:
+// The T4 cell smooths the GAIN REDUCTION value (in dB), not the raw signal.
+// This models the CdS photoresistor's sluggish response to the EL panel:
 // - Fast attack (~10ms)
 // - Program-dependent release: dual time constants blended by
 //   a "charge" accumulator that tracks compression history
 // - T4 bias control shifts the attack/release characteristics
+//
+// Input: desired_gr (dB, negative, from gain computer)
+// Output: smoothed gr (dB, negative)
 
-// T4 opto cell outputs envelope level (linear).
-// Gain computer is applied externally.
-t4_cell(sc_level) = opto_env
+t4_cell(desired_gr) = opto_env
 letrec {
-    // Charge accumulator: tracks compression history
+    // Charge accumulator: tracks compression history (how long we've been compressing)
     // Increases when compressing (short tau), decays when idle (long tau)
     'charge = charge + (target_charge - charge) * (1.0 - charge_pole)
     with {
-        is_compressing = (sc_level > 0.001);
+        is_compressing = (desired_gr < -0.5);  // more than 0.5dB of GR requested
         target_charge = is_compressing;
-        charge_tau = select2(is_compressing, 10.0, 2.0);
+        charge_tau = select2(is_compressing, 2.0, 1.0);  // 1s charge, 2s decay
         charge_pole = tau2p(charge_tau);
     };
 
-    // Envelope follower with asymmetric attack/release
-    'opto_env = opto_env + (target - opto_env) * (1.0 - pole)
+    // Envelope follower: smooths the gain reduction value
+    // Asymmetric attack/release like real opto cell
+    'opto_env = opto_env + (desired_gr - opto_env) * (1.0 - pole)
     with {
         // T4 bias shifts the base attack/release times
-        bias_scale = 0.5 + (t4_bias / 100.0);  // 0.5 to 1.5
+        // bias 0 = fast (0.5x), bias 100 = slow (1.5x)
+        bias_scale = 0.5 + (t4_bias / 100.0);
 
-        // Attack: ~10ms base, modulated by bias
+        // Attack: ~10ms base (opto cell lights up fast)
         attack_tau = 0.010 * bias_scale;
 
         // Release: blend of fast and slow, modulated by charge history
+        // Fast release: ~60ms (initial recovery, first 50% of GR)
+        // Slow release: 0.3s to 1.5s depending on compression history
         fast_rel_tau = 0.060 * bias_scale;
-        slow_rel_tau = (0.5 + charge * 4.5) * bias_scale;
+        slow_rel_tau = (0.3 + charge * 1.2) * bias_scale;
 
-        // More charge = more slow release (CdS memory effect)
-        slow_blend = 0.30 + charge * 0.55;  // 30% to 85% slow
+        // More charge = more slow release dominance (CdS memory effect)
+        slow_blend = 0.20 + charge * 0.40;  // 20% to 60% slow
         rel_tau = fast_rel_tau * (1.0 - slow_blend) + slow_rel_tau * slow_blend;
 
-        is_attack = (sc_level > opto_env);
+        // Attack = GR getting deeper (desired_gr more negative than current)
+        // Release = GR getting shallower (desired_gr less negative than current)
+        is_attack = (desired_gr < opto_env);
         current_tau = select2(is_attack, rel_tau, attack_tau);
         pole = tau2p(current_tau);
-
-        target = sc_level;
     };
 };
 
@@ -140,18 +180,21 @@ with {
 };
 
 //==========================================================================
-// Main Stereo Compressor (Feedback Topology)
+// Main Stereo Compressor (Feedforward Sidechain)
 //==========================================================================
+// The sidechain detects the INPUT signal level (before compression).
+// Peak Reduction controls the gain computer's threshold and SC sensitivity
+// (moved into the gain computer, not a separate boost stage).
+//
 // Signal flow:
-//   Input L/R -> [apply gain reduction] -> [tube stage] -> [makeup gain] -> Output L/R
-//                       ^                                                     |
-//                       |                 feedback path (1-sample delay)       |
-//                   gr_db  <-- gain_computer <-- t4_cell <-- sc_filter <-- max(|L|,|R|)
+//   Input L/R ─┬─> [apply GR] -> [tube stage] -> [makeup gain] -> Output L/R
+//              |        ^
+//              |     gr_db (1-sample delay)
+//              |        |
+//              └─> [sc_filter] -> [peak_det] -> [gain_computer(PR)] -> [t4_cell] -> gr_db
 
 stereo_compressor = (stereo_block ~ _) : (!, _, _)
 with {
-    // Peak Reduction scales the sidechain drive (like the real knob)
-    sc_drive = peak_reduction / 100.0 * 4.0;  // 0 to 4x sidechain gain
     makeup_lin = db2lin(makeup_gain_db);
 
     // Core processing block
@@ -159,7 +202,7 @@ with {
     // Outputs: new gr_db (for feedback), processed L, processed R
     stereo_block(gr_prev, l, r) = gr_new, out_l, out_r
     with {
-        // Apply previous gain reduction
+        // Apply previous gain reduction (gr_prev is negative dB)
         gr_lin = db2lin(gr_prev);
         comp_l = l * gr_lin;
         comp_r = r * gr_lin;
@@ -172,13 +215,21 @@ with {
         out_l = sat_l * makeup_lin;
         out_r = sat_r * makeup_lin;
 
-        // Sidechain: detect from compressed output (feedback topology)
-        sc_input = max(abs(comp_l), abs(comp_r));
-        sc_filtered = sc_filter(sc_input);
-        sc_driven = abs(sc_filtered) * sc_drive;
+        // --- Sidechain path ---
+        // 1. Filter each channel's bipolar signal (HPF + emphasis)
+        // 2. Rectify and take max of channels
+        // 3. Peak-detect for stable per-cycle envelope
+        // 4. Convert to dB → gain computer (PR controls threshold) → T4 cell
+        sc_l = sc_filter(l);
+        sc_r = sc_filter(r);
+        sc_peak = peak_detector(max(abs(sc_l), abs(sc_r)));
 
-        // T4 opto cell produces envelope level; gain_computer converts to dB reduction
-        gr_new = gain_computer(lin2db(max(t4_cell(sc_driven), 1e-30))) : gr_meter;
+        // Gain computer uses peak-detected level; PR is internal to gain_computer
+        sc_level_db = lin2db(sc_peak);
+        desired_gr = gain_computer(sc_level_db);
+
+        // T4 opto cell: smooth the GR with attack/release envelope
+        gr_new = t4_cell(desired_gr) : gr_meter;
     };
 };
 
