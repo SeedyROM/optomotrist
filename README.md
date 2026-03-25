@@ -1,97 +1,48 @@
 # Optomotrist
 
-A optical/fet compressor emulator.
+LA-2A-style optical/FET compressor emulator.
 
-## About
+[![Build](https://github.com/SeedyROM/optomotrist/actions/workflows/build.yml/badge.svg)](https://github.com/SeedyROM/optomotrist/actions/workflows/build.yml)
 
-- **Author**: Zack Kollar (me@seedyrom.io)
-- **Company**: SeedyROM
-- **Formats**: VST2, VST3, AU, Standalone
+<!-- TODO: Add screenshot -->
 
-## Architecture Included
+<br />
+<br />
 
-- **Preset + A/B state architecture** is included by default.
-- **Preset storage path**: `~/Library/Application Support/SeedyROM/Optomotrist/Presets` (platform equivalent).
-- **Preset extension**: `.optomotristpreset`.
-- **Advanced UI profile**: `enabled`.
+Optomotrist is a stereo optical compressor plugin modeled after the LA-2A, built around a T4 opto cell emulation with program-dependent attack/release, a soft-knee gain computer, sidechain filtering with adjustable HPF and HF emphasis, and a 12AX7-style triode saturation stage. It includes authentic front-panel controls (Input Drive, Peak Reduction, Gain, Mix, Limit/Compress) and back-panel "screw" trims (SC Emphasis, SC HPF, T4 Bias). The DSP is written in [Faust](https://faust.grame.fr/) and the UI is built with [JUCE](https://juce.com/).
 
-## Theming
+The T4 cell model uses a charge accumulator to track compression history, producing the real LA-2A's characteristic behavior where release time lengthens with sustained gain reduction — the CdS photoresistor "memory" effect.
 
-The advanced UI uses color constants (`src/ui/OptomotristColors.h`) and a custom look-and-feel (`src/ui/PluginLookAndFeel.*`).
+## Platforms & Formats
 
+| Platform | Architectures | Formats |
+|---|---|---|
+| macOS | Universal (arm64 + x86_64) | VST3, AU, Standalone |
+| macOS Legacy | x86_64 (10.13+) | VST3, AU, Standalone |
+| Windows | x86_64 | VST3, Standalone |
+| Linux | x86_64 | VST3, Standalone |
 
-## Prerequisites
+## Downloads
 
-- CMake 3.22+
-- C++17 compiler
-- [just](https://github.com/casey/just) (recommended)
-- [Faust](https://faust.grame.fr/downloads/) (only needed when editing DSP)
+Grab the latest build from [GitHub Releases](https://github.com/SeedyROM/optomotrist/releases). CI builds run on every push to `main` and pull request. When a `v*` tag is pushed, a draft release is created automatically with per-platform zips (macOS Universal, macOS Legacy, Windows, Linux).
 
+## Building
 
-## Build
-
-```bash
-just build
-just release
-just run
-```
-
-Manual:
+Requires CMake 3.22+ and a C++17 compiler. JUCE is fetched automatically during configure.
 
 ```bash
 cmake -B build -G Ninja
 cmake --build build --config Release
 ```
 
-## CI/Distribution Build
+See [docs/building.md](docs/building.md) for platform-specific prerequisites, CMake options, and the `just` task runner.
 
-```bash
-cmake -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DOPTOMOTRIST_COPY_AFTER_BUILD=OFF \
-  -DOPTOMOTRIST_USE_MARCH_NATIVE=OFF \
-  -DOPTOMOTRIST_ENABLE_CODEGEN=OFF
-```
+## Faust DSP
 
-## Presets and A/B
+The compressor DSP lives in `dsp/optomotrist.dsp`. A codegen script compiles the Faust source to C++ and generates a bridge layer that maps Faust parameters to JUCE's `AudioProcessorValueTreeState`. The generated files are committed to git, so you don't need Faust installed for normal builds; Faust is only required when you intentionally regenerate the DSP outputs.
 
-- A/B state architecture exists in the processor backend.
-- No presets are pre-populated in the advanced UI template shell.
-- Preset behavior is intended to be defined by the plugin implementation.
-
-## Advanced UI
-
-Enabled in this generated project:
-
-- Themed top bar with preset/A-B/options controls wired as placeholders.
-- Empty content area below top bar for product-specific UI.
-- Color constants and look-and-feel infrastructure ready for customization.
-
-
-## Project Structure
-
-```
-optomotrist/
-├── CMakeLists.txt
-├── justfile
-├── src/
-│   ├── PluginProcessor.h/cpp
-│   ├── PluginEditor.h/cpp
-│   ├── presets/
-│   │   └── PluginPresetManager.h/cpp
-│   ├── data/
-│   │   ├── PluginParameters.h
-│   │   └── RuntimeParameters.h
-│   ├── components/
-│   │   ├── brand/TopBar.h/cpp
-│   │   └── controls/RotaryKnob.h/cpp
-│   └── ui/OptomotristColors.h, PluginLookAndFeel.h/cpp
-├── dsp/optomotrist.dsp
-├── src/dsp/generated/
-├── scripts/codegen.py
-└── scripts/element_dev.sh
-```
+See [docs/faust-codegen.md](docs/faust-codegen.md) for details on the codegen pipeline and how to modify the DSP.
 
 ## License
 
-[Your License Here]
+[AGPLv3](LICENSE)
