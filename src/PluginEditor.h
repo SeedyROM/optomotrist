@@ -47,6 +47,7 @@ private:
 
   // --- Sidechain / Character controls ---
   RotaryKnob scEmphasisKnob;
+  RotaryKnob scEmphasisFreqKnob;
   RotaryKnob scHpfKnob;
   RotaryKnob t4BiasKnob;
 

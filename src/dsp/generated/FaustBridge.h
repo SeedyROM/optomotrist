@@ -21,6 +21,7 @@ public:
         mixParam_ = apvts_.getRawParameterValue(FaustParamIDs::mix);
         limitModeParam_ = apvts_.getRawParameterValue(FaustParamIDs::limitMode);
         scEmphasisParam_ = apvts_.getRawParameterValue(FaustParamIDs::scEmphasis);
+        scEmphasisFreqParam_ = apvts_.getRawParameterValue(FaustParamIDs::scEmphasisFreq);
         scHpfParam_ = apvts_.getRawParameterValue(FaustParamIDs::scHpf);
         t4BiasParam_ = apvts_.getRawParameterValue(FaustParamIDs::t4Bias);
     }
@@ -36,13 +37,14 @@ public:
         const int numSamples = buffer.getNumSamples();
 
         dsp_.fHslider1 = loadParam(inputDriveParam_);
-        dsp_.fHslider3 = loadParam(peakReductionParam_);
-        dsp_.fHslider5 = loadParam(gainParam_);
-        dsp_.fHslider6 = loadParam(mixParam_);
+        dsp_.fHslider4 = loadParam(peakReductionParam_);
+        dsp_.fHslider6 = loadParam(gainParam_);
+        dsp_.fHslider7 = loadParam(mixParam_);
         dsp_.fCheckbox0 = loadParam(limitModeParam_) > 0.5f ? 1.0f : 0.0f;
-        dsp_.fHslider2 = loadParam(scEmphasisParam_);
+        dsp_.fHslider3 = loadParam(scEmphasisParam_);
+        dsp_.fHslider2 = loadParam(scEmphasisFreqParam_);
         dsp_.fHslider0 = loadParam(scHpfParam_);
-        dsp_.fHslider4 = loadParam(t4BiasParam_);
+        dsp_.fHslider5 = loadParam(t4BiasParam_);
 
         float* inputChannels[2];
         float* outputChannels[2];
@@ -90,6 +92,7 @@ public:
     float getMix() const { return loadParam(mixParam_); }
     bool getLimitMode() const { return loadParam(limitModeParam_) > 0.5f; }
     float getScEmphasis() const { return loadParam(scEmphasisParam_); }
+    float getScEmphasisFreq() const { return loadParam(scEmphasisFreqParam_); }
     float getScHpf() const { return loadParam(scHpfParam_); }
     float getT4Bias() const { return loadParam(t4BiasParam_); }
     float getGrMeter() const { return dsp_.fHbargraph0; }
@@ -117,6 +120,7 @@ private:
     std::atomic<float>* mixParam_ = nullptr;
     std::atomic<float>* limitModeParam_ = nullptr;
     std::atomic<float>* scEmphasisParam_ = nullptr;
+    std::atomic<float>* scEmphasisFreqParam_ = nullptr;
     std::atomic<float>* scHpfParam_ = nullptr;
     std::atomic<float>* t4BiasParam_ = nullptr;
     juce::AudioBuffer<float> inputScratch_;

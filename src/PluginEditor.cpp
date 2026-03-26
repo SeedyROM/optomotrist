@@ -15,6 +15,8 @@ OptomotristAudioProcessorEditor::OptomotristAudioProcessorEditor(
       gainKnob(p.apvts, RuntimeParamIDs::gain, "GAIN", " dB"),
       mixKnob(p.apvts, RuntimeParamIDs::mix, "MIX", "%"),
       scEmphasisKnob(p.apvts, RuntimeParamIDs::scEmphasis, "SC EMPHASIS", "%"),
+      scEmphasisFreqKnob(p.apvts, RuntimeParamIDs::scEmphasisFreq,
+                         "SC EMP FREQ", " Hz"),
       scHpfKnob(p.apvts, RuntimeParamIDs::scHpf, "SC HPF", " Hz"),
       t4BiasKnob(p.apvts, RuntimeParamIDs::t4Bias, "T4 BIAS", "%") {
   setLookAndFeel(&pluginLnf);
@@ -26,6 +28,7 @@ OptomotristAudioProcessorEditor::OptomotristAudioProcessorEditor(
   addAndMakeVisible(gainKnob);
   addAndMakeVisible(mixKnob);
   addAndMakeVisible(scEmphasisKnob);
+  addAndMakeVisible(scEmphasisFreqKnob);
   addAndMakeVisible(scHpfKnob);
   addAndMakeVisible(t4BiasKnob);
 
@@ -287,17 +290,20 @@ void OptomotristAudioProcessorEditor::resized() {
     area.removeFromTop(titleHeight);
 
     const int hGap = 8;
-    const int numControls = 3;
+    const int numControls = 4;
     const int knobW =
         (area.getWidth() - hGap * (numControls - 1)) / numControls;
 
     auto scEmphBounds = area.removeFromLeft(knobW);
+    area.removeFromLeft(hGap);
+    auto scEmphFreqBounds = area.removeFromLeft(knobW);
     area.removeFromLeft(hGap);
     auto scHpfBounds = area.removeFromLeft(knobW);
     area.removeFromLeft(hGap);
     auto t4BiasBounds = area;
 
     scEmphasisKnob.setBounds(scEmphBounds);
+    scEmphasisFreqKnob.setBounds(scEmphFreqBounds);
     scHpfKnob.setBounds(scHpfBounds);
     t4BiasKnob.setBounds(t4BiasBounds);
   }

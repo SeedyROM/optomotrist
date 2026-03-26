@@ -12,6 +12,7 @@ namespace FaustParamIDs {
     static constexpr const char* mix = "mix";
     static constexpr const char* limitMode = "limit_mode";
     static constexpr const char* scEmphasis = "sc_emphasis";
+    static constexpr const char* scEmphasisFreq = "sc_emphasis_freq";
     static constexpr const char* scHpf = "sc_hpf";
     static constexpr const char* t4Bias = "t4_bias";
 } // namespace FaustParamIDs
@@ -52,9 +53,14 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
         50.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{FaustParamIDs::scEmphasisFreq, 1},
+        "SC Emp Freq",
+        juce::NormalisableRange<float>(200.0f, 8000.0f, 1.0f, 0.3481f),
+        1000.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{FaustParamIDs::scHpf, 1},
         "SC HPF",
-        juce::NormalisableRange<float>(20.0f, 500.0f, 1.0f),
+        juce::NormalisableRange<float>(20.0f, 500.0f, 1.0f, 0.3869f),
         20.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID{FaustParamIDs::t4Bias, 1},

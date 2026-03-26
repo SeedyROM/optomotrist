@@ -16,12 +16,13 @@ mix            = hslider("[4][id:mix] Mix", 100, 0, 100, 0.1) : si.smoo;
 limit_mode     = checkbox("[5][id:limit_mode] Limit/Compress");
 
 // --- Back Panel ("screw" controls) ---
-sc_emphasis = hslider("[6][id:sc_emphasis] SC Emphasis", 50, 0, 100, 0.1) : si.smoo;
-sc_hpf_freq = hslider("[7][id:sc_hpf] SC HPF", 20, 20, 500, 1) : si.smoo;
-t4_bias     = hslider("[8][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
+sc_emphasis      = hslider("[6][id:sc_emphasis] SC Emphasis", 50, 0, 100, 0.1) : si.smoo;
+sc_emphasis_freq = hslider("[7][id:sc_emphasis_freq][scale:log] SC Emp Freq", 1000, 200, 8000, 1) : si.smoo;
+sc_hpf_freq      = hslider("[8][id:sc_hpf][scale:log] SC HPF", 20, 20, 500, 1) : si.smoo;
+t4_bias          = hslider("[9][id:t4_bias] T4 Bias", 50, 0, 100, 0.1) : si.smoo;
 
 // --- Metering (output only, not an APVTS parameter) ---
-gr_meter = hbargraph("[9][id:gr_meter] GR", -60, 0);
+gr_meter = hbargraph("[10][id:gr_meter] GR", -60, 0);
 
 //==========================================================================
 // Utilities
@@ -44,7 +45,7 @@ lin2db(x) = 20.0 * log10(max(x, 1e-30));
 sc_filter(x) = hpf_out + hf_emphasis_out
 with {
     hpf_out = fi.highpass(1, sc_hpf_freq, x);
-    hf_component = fi.highpass(1, 1000, hpf_out);
+    hf_component = fi.highpass(1, sc_emphasis_freq, hpf_out);
     emphasis_amount = sc_emphasis / 100.0;
     hf_emphasis_out = hf_component * emphasis_amount;
 };
