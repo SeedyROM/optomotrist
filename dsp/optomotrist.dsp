@@ -46,7 +46,7 @@ sc_filter(x) = hpf_out + hf_emphasis_out
 with {
     hpf_out = fi.highpass(1, sc_hpf_freq, x);
     hf_component = fi.highpass(1, sc_emphasis_freq, hpf_out);
-    emphasis_amount = sc_emphasis / 100.0;
+    emphasis_amount = (sc_emphasis / 100.0) ^ 2 * 6.0;
     hf_emphasis_out = hf_component * emphasis_amount;
 };
 
