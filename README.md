@@ -1,10 +1,10 @@
 # Optomotrist
 
-LA-2A-style optical/FET compressor emulator.
+LA-2A-style optical compressor emulator.
 
 [![Build](https://github.com/SeedyROM/optomotrist/actions/workflows/build.yml/badge.svg)](https://github.com/SeedyROM/optomotrist/actions/workflows/build.yml)
 
-<img width="760" height="620" alt="Screenshot 2026-03-25 at 1 23 27 AM" src="https://github.com/user-attachments/assets/de0bf24f-7392-4cc7-a2ab-173176cbe9f2" />
+<img width="760" height="618" alt="Screenshot 2026-03-26 at 12 12 31 AM" src="https://github.com/user-attachments/assets/a137e44d-4645-4a0e-a8ed-0b3dfe05b1ee" />
 
 <br />
 <br />
